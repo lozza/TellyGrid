@@ -7,6 +7,15 @@
 
 ![TellyGrid running on Android TV](dist/TellyGrid.png)
 
+## Download
+
+[Download TellyGrid v0.1.0 Alpha 1 for Android TV](https://github.com/lozza/TellyGrid/releases/download/v0.1.0-alpha.1/TellyGrid-v0.1.0-alpha.1.apk)
+
+This first public build is a sideloading preview signed with a development key. A
+future production-signed release may require the preview to be uninstalled first.
+See [all releases](https://github.com/lozza/TellyGrid/releases) for release notes and
+newer builds.
+
 TellyGrid is a source-available guide-and-launcher for Android TV/Google TV. It presents BBC, ITV,
 Channel 4, 5, NOW, and discovery+ channels in one remote-friendly screen. Selecting
 a broadcaster channel opens the provider's installed app. The same architecture can
