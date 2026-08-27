@@ -1,0 +1,74 @@
+name: Update live guide
+
+on:
+  schedule:
+    - cron: "17 */12 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "epg/**"
+      - "pages/**"
+      - ".github/workflows/guide.yml"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out TellyGrid
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Fetch the pinned EPG generator
+        env:
+          EPG_REVISION: a96fc01e5c93cb57abc229d77e83e240dcdd20dc
+        run: |
+          git init "$RUNNER_TEMP/iptv-org-epg"
+          git -C "$RUNNER_TEMP/iptv-org-epg" remote add origin https://github.com/iptv-org/epg.git
+          git -C "$RUNNER_TEMP/iptv-org-epg" fetch --depth 1 origin "$EPG_REVISION"
+          git -C "$RUNNER_TEMP/iptv-org-epg" checkout --detach FETCH_HEAD
+
+      - name: Install generator dependencies
+        run: npm --prefix "$RUNNER_TEMP/iptv-org-epg" ci
+
+      - name: Generate the two-day Sky UK guide
+        run: |
+          mkdir -p "$RUNNER_TEMP/tellygrid-pages"
+          cp pages/index.html "$RUNNER_TEMP/tellygrid-pages/index.html"
+          npm --prefix "$RUNNER_TEMP/iptv-org-epg" run grab -- \
+            --channels="$GITHUB_WORKSPACE/epg/sky-uk.channels.xml" \
+            --output="$RUNNER_TEMP/tellygrid-pages/guide.xml" \
+            --days=2 \
+            --maxConnections=4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload guide site
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/tellygrid-pages
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publish guide
+        id: deployment
+        uses: actions/deploy-pages@v4

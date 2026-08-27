@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channels>
+  <channel site="sky.com" site_id="GB#3000" lang="en" xmltv_id="bbc-one">BBC One London HD</channel>
+  <channel site="sky.com" site_id="GB#2075" lang="en" xmltv_id="bbc-two">BBC Two HD</channel>
+  <channel site="sky.com" site_id="GB#1043" lang="en" xmltv_id="itv1">ITV1 London HD</channel>
+  <channel site="sky.com" site_id="GB#1202" lang="en" xmltv_id="channel-4">Channel 4 HD</channel>
+  <channel site="sky.com" site_id="GB#4058" lang="en" xmltv_id="five">5 HD</channel>
+
+  <channel site="sky.com" site_id="GB#4061" lang="en" xmltv_id="sky-showcase">Sky Showcase HD</channel>
+  <channel site="sky.com" site_id="GB#4053" lang="en" xmltv_id="sky-atlantic">Sky Atlantic HD</channel>
+  <channel site="sky.com" site_id="GB#4066" lang="en" xmltv_id="sky-witness">Sky Witness HD</channel>
+  <channel site="sky.com" site_id="GB#1143" lang="en" xmltv_id="sky-comedy">Sky Comedy HD</channel>
+  <channel site="sky.com" site_id="GB#4074" lang="en" xmltv_id="sky-scifi">Sky Sci-Fi HD</channel>
+  <channel site="sky.com" site_id="GB#1136" lang="en" xmltv_id="sky-documentaries">Sky Documentaries HD</channel>
+  <channel site="sky.com" site_id="GB#1212" lang="en" xmltv_id="sky-crime">Sky Crime HD</channel>
+  <channel site="sky.com" site_id="GB#1165" lang="en" xmltv_id="sky-nature">Sky Nature HD</channel>
+  <channel site="sky.com" site_id="GB#4063" lang="en" xmltv_id="sky-arts">Sky Arts HD</channel>
+  <channel site="sky.com" site_id="GB#4086" lang="en" xmltv_id="sky-history">Sky History HD</channel>
+
+  <channel site="sky.com" site_id="GB#4003" lang="en" xmltv_id="discovery">Discovery HD</channel>
+  <channel site="sky.com" site_id="GB#3812" lang="en" xmltv_id="tlc">TLC HD</channel>
+  <channel site="sky.com" site_id="GB#2402" lang="en" xmltv_id="animal-planet">Animal Planet</channel>
+  <channel site="sky.com" site_id="GB#2413" lang="en" xmltv_id="investigation-discovery">Investigation Discovery</channel>
+  <channel site="sky.com" site_id="GB#1130" lang="en" xmltv_id="quest">Quest HD</channel>
+  <channel site="sky.com" site_id="GB#2411" lang="en" xmltv_id="quest-red">Quest Red</channel>
+
+  <channel site="sky.com" site_id="GB#4021" lang="en" xmltv_id="sky-cinema-premiere">Sky Cinema Premiere HD</channel>
+  <channel site="sky.com" site_id="GB#4014" lang="en" xmltv_id="sky-cinema-action">Sky Cinema Action HD</channel>
+  <channel site="sky.com" site_id="GB#4016" lang="en" xmltv_id="sky-cinema-drama">Sky Cinema Drama HD</channel>
+  <channel site="sky.com" site_id="GB#4018" lang="en" xmltv_id="sky-cinema-family">Sky Cinema Family HD</channel>
+  <channel site="sky.com" site_id="GB#4015" lang="en" xmltv_id="sky-cinema-greats">Sky Cinema Greats HD</channel>
+  <channel site="sky.com" site_id="GB#4062" lang="en" xmltv_id="sky-cinema-thriller">Sky Cinema Thriller HD</channel>
+
+  <channel site="sky.com" site_id="GB#4002" lang="en" xmltv_id="sky-sports-main-event">Sky Sports Main Event HD</channel>
+  <channel site="sky.com" site_id="GB#4011" lang="en" xmltv_id="sky-sports-premier-league">Sky Sports Premier League HD</channel>
+  <channel site="sky.com" site_id="GB#3942" lang="en" xmltv_id="sky-sports-football">Sky Sports Football HD</channel>
+  <channel site="sky.com" site_id="GB#4081" lang="en" xmltv_id="sky-sports-cricket">Sky Sports Cricket HD</channel>
+  <channel site="sky.com" site_id="GB#3835" lang="en" xmltv_id="sky-sports-f1">Sky Sports F1 HD</channel>
+  <channel site="sky.com" site_id="GB#4026" lang="en" xmltv_id="sky-sports-golf">Sky Sports Golf HD</channel>
+  <channel site="sky.com" site_id="GB#4024" lang="en" xmltv_id="sky-sports-action">Sky Sports Action HD</channel>
+  <channel site="sky.com" site_id="GB#4036" lang="en" xmltv_id="sky-sports-news">Sky Sports News HD</channel>
+</channels>

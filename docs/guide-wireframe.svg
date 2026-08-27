@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#090d16"/>
+  <text x="54" y="55" fill="#35e0a1" font-family="Arial, sans-serif" font-size="16" font-weight="700">LIVE GUIDE</text>
+  <text x="54" y="94" fill="#ffffff" font-family="Arial, sans-serif" font-size="34" font-weight="700">What’s on now</text>
+  <text x="996" y="82" fill="#9aa6b6" font-family="Arial, sans-serif" font-size="16">Select a programme to watch</text>
+  <text x="270" y="138" fill="#9aa6b6" font-family="Arial, sans-serif" font-size="14">NOW</text>
+  <text x="725" y="138" fill="#9aa6b6" font-family="Arial, sans-serif" font-size="14">NEXT</text>
+
+  <g font-family="Arial, sans-serif">
+    <rect x="52" y="154" width="1176" height="86" rx="12" fill="#263246" stroke="#35e0a1" stroke-width="3"/>
+    <rect x="65" y="168" width="6" height="58" rx="3" fill="#ef476f"/>
+    <text x="88" y="181" fill="#9aa6b6" font-size="13">1</text><text x="88" y="207" fill="#fff" font-size="20" font-weight="700">BBC One</text><text x="88" y="225" fill="#9aa6b6" font-size="12">BBC iPlayer</text>
+    <text x="270" y="180" fill="#9aa6b6" font-size="12">18:00–18:30</text><text x="270" y="207" fill="#fff" font-size="18">Current programme</text>
+    <text x="725" y="180" fill="#9aa6b6" font-size="12">18:30–19:00</text><text x="725" y="207" fill="#fff" font-size="18">Next programme</text>
+    <text x="1030" y="201" fill="#35e0a1" font-size="12" font-weight="700">OPEN BBC IPLAYER</text>
+
+    <g fill="#151b28">
+      <rect x="52" y="250" width="1176" height="86" rx="12"/><rect x="52" y="346" width="1176" height="86" rx="12"/><rect x="52" y="442" width="1176" height="86" rx="12"/><rect x="52" y="538" width="1176" height="86" rx="12"/>
+    </g>
+    <g font-size="20" font-weight="700" fill="#fff">
+      <text x="88" y="303">ITV1</text><text x="88" y="399">Channel 4</text><text x="88" y="495">5</text><text x="88" y="591">Sky Atlantic</text>
+    </g>
+    <g font-size="18" fill="#fff">
+      <text x="270" y="303">Current programme</text><text x="725" y="303">Next programme</text>
+      <text x="270" y="399">Current programme</text><text x="725" y="399">Next programme</text>
+      <text x="270" y="495">Current programme</text><text x="725" y="495">Next programme</text>
+      <text x="270" y="591">Current programme</text><text x="725" y="591">Next programme</text>
+    </g>
+    <g font-size="12" font-weight="700" fill="#9aa6b6">
+      <text x="1050" y="303">OPEN ITVX</text><text x="1024" y="399">OPEN CHANNEL 4</text><text x="1066" y="495">OPEN 5</text><text x="1050" y="591">OPEN NOW</text>
+    </g>
+    <rect x="65" y="264" width="6" height="58" rx="3" fill="#06d6a0"/><rect x="65" y="360" width="6" height="58" rx="3" fill="#4cc9f0"/><rect x="65" y="456" width="6" height="58" rx="3" fill="#b5179e"/><rect x="65" y="552" width="6" height="58" rx="3" fill="#8e7dbe"/>
+  </g>
+  <text x="54" y="676" fill="#9aa6b6" font-family="Arial, sans-serif" font-size="14">↑↓ Channels   ←→ Time   OK Watch/open provider   Back Return</text>
+</svg>
+
