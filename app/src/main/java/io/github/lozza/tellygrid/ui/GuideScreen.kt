@@ -46,6 +46,7 @@ fun GuideScreen(
     channels: List<GuideChannel>,
     status: String?,
     onChannelSelected: (GuideChannel) -> Unit,
+    onOpenSetup: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -62,7 +63,11 @@ fun GuideScreen(
                 Text("TELLYGRID", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text("What’s on now", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 30.sp)
             }
-            Text(status ?: "Select a programme to watch", color = Color(0xFF9AA6B6), fontSize = 15.sp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                HeaderButton("APP SETUP", onOpenSetup)
+                Spacer(Modifier.width(18.dp))
+                Text(status ?: "Select a programme to watch", color = Color(0xFF9AA6B6), fontSize = 15.sp)
+            }
         }
 
         Spacer(Modifier.height(22.dp))
@@ -78,6 +83,25 @@ fun GuideScreen(
             }
         }
     }
+}
+
+@Composable
+private fun HeaderButton(text: String, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    Text(
+        text = text,
+        color = if (focused) Color(0xFF090D16) else MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        fontSize = 12.sp,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (focused) MaterialTheme.colorScheme.primary else Color.Transparent)
+            .border(1.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+            .onFocusChanged { focused = it.isFocused }
+            .clickable(onClick = onClick)
+            .focusable()
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    )
 }
 
 @Composable

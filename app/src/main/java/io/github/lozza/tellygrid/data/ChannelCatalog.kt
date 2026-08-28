@@ -7,6 +7,7 @@ data class CatalogChannel(
     val providerLabel: String,
     val accentArgb: Long,
     val provider: ProviderApp,
+    val channelUri: String? = null,
 )
 
 object ChannelCatalog {
@@ -17,14 +18,15 @@ object ChannelCatalog {
         label: String,
         accent: Long,
         provider: ProviderApp,
-    ) = CatalogChannel(id, number, name, label, accent, provider)
+        channelUri: String? = null,
+    ) = CatalogChannel(id, number, name, label, accent, provider, channelUri)
 
     val channels = listOf(
-        channel("bbc-one", 1, "BBC One", "BBC iPlayer", 0xFFEF476FL, ProviderRegistry.bbc),
-        channel("bbc-two", 2, "BBC Two", "BBC iPlayer", 0xFFF59E0BL, ProviderRegistry.bbc),
-        channel("itv1", 3, "ITV1", "ITVX", 0xFF06D6A0L, ProviderRegistry.itvx),
-        channel("channel-4", 4, "Channel 4", "Channel 4", 0xFF4CC9F0L, ProviderRegistry.channel4),
-        channel("five", 5, "5", "5", 0xFFB5179EL, ProviderRegistry.five),
+        channel("bbc-one", 1, "BBC One", "BBC iPlayer", 0xFFEF476FL, ProviderRegistry.bbc, "https://www.bbc.co.uk/iplayer/live/bbcone"),
+        channel("bbc-two", 2, "BBC Two", "BBC iPlayer", 0xFFF59E0BL, ProviderRegistry.bbc, "https://www.bbc.co.uk/iplayer/live/bbctwo"),
+        channel("itv1", 3, "ITV1", "ITVX", 0xFF06D6A0L, ProviderRegistry.itvx, "https://www.itv.com/watch?channel=itv"),
+        channel("channel-4", 4, "Channel 4", "Channel 4", 0xFF4CC9F0L, ProviderRegistry.channel4, "https://www.channel4.com/now/c4"),
+        channel("five", 5, "5", "5", 0xFFB5179EL, ProviderRegistry.five, "https://www.channel5.com/live/channel-5"),
 
         channel("sky-showcase", 101, "Sky Showcase", "NOW Entertainment", 0xFF8E7DBEL, ProviderRegistry.now),
         channel("sky-atlantic", 102, "Sky Atlantic", "NOW Entertainment", 0xFF7768AAL, ProviderRegistry.now),
@@ -36,6 +38,12 @@ object ChannelCatalog {
         channel("sky-nature", 108, "Sky Nature", "NOW Entertainment", 0xFF44A87CL, ProviderRegistry.now),
         channel("sky-arts", 109, "Sky Arts", "NOW Entertainment", 0xFFE05A8AL, ProviderRegistry.now),
         channel("sky-history", 110, "Sky History", "NOW Entertainment", 0xFFC7924CL, ProviderRegistry.now),
+        channel("u-gold", 111, "U&Gold", "NOW Entertainment", 0xFFF2B544L, ProviderRegistry.now),
+        channel("u-alibi", 112, "U&Alibi", "NOW Entertainment", 0xFFB85ACAL, ProviderRegistry.now),
+        channel("mtv", 113, "MTV", "NOW Entertainment", 0xFFE83283L, ProviderRegistry.now),
+        channel("comedy-central", 114, "Comedy Central", "NOW Entertainment", 0xFF6E64C8L, ProviderRegistry.now),
+        channel("sky-kids", 115, "Sky Kids", "NOW Entertainment", 0xFFFF8A40L, ProviderRegistry.now),
+        channel("sky-mix", 116, "Sky Mix", "NOW Entertainment", 0xFF2CC9B7L, ProviderRegistry.now),
 
         channel("discovery", 120, "Discovery", "discovery+", 0xFFFF6B35L, ProviderRegistry.discoveryPlus),
         channel("tlc", 121, "TLC", "discovery+", 0xFFE84A8AL, ProviderRegistry.discoveryPlus),

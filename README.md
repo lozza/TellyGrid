@@ -9,7 +9,7 @@
 
 ## Download
 
-[Download TellyGrid v0.1.0 Alpha 1 for Android TV](https://github.com/lozza/TellyGrid/releases/download/v0.1.0-alpha.1/TellyGrid-v0.1.0-alpha.1.apk)
+[Download the newest TellyGrid alpha for Android TV](https://github.com/lozza/TellyGrid/releases)
 
 This first public build is a sideloading preview signed with a development key. A
 future production-signed release may require the preview to be uninstalled first.
@@ -49,11 +49,12 @@ model, certification, region, subscription and app-store catalogue. BBC iPlayer 
 particular must be tested on every target device family rather than assuming all
 generic Android TV boxes are supported.
 
-Package names in `ProviderRegistry.kt` are current public Play Store identifiers and
-fallback candidates, not provider-supported channel deep links. Keep them in remote
-configuration in production. App-home launch is the baseline. Populate
-`verifiedDeepLinkUri` only after a provider documents or issues the URI and it passes
-testing on the supported device matrix.
+TellyGrid discovers TV-launchable apps and handlers for official broadcaster URLs,
+including manufacturer-supplied Freeview Play variants. `APP SETUP` lets the user
+override automatic matching for each provider. A channel URL is sent only to the
+chosen installed app when Android reports that app can handle it; app-home launch is
+the fallback. Exact tuning remains provider/device dependent and requires physical-TV
+testing.
 
 ## UX blueprint
 
@@ -65,14 +66,15 @@ The scaffold implements the first useful slice:
   badge, current programme, next programme and a clear destination label.
 - Up/down moves between channels. Select opens the programme. Focus has a high-
   contrast border and does not depend on colour alone.
-- The launch order is verified content link, TV app, normal app, then Play Store.
-  Returning from the provider app returns to the guide.
+- The launch order is supported channel link, selected TV app, then automatically
+  detected TV app. It never redirects a Freeview Play TV to an incompatible retail
+  Play Store build. Returning from the provider app returns to the guide.
 - A licensed stream opens a full-screen Media3 player; Back returns to the guide.
 
 The production version should add horizontal time navigation in 30-minute steps,
 date jump, favourites, genre/provider filters, regional variants, search, reminders,
-and a provider setup screen showing Installed / Sign-in required / Subscription
-required. Preserve row and time position when a user returns from another app.
+and sign-in/subscription state. Preserve row and time position when a user returns
+from another app.
 
 | Remote action | Result |
 |---|---|
@@ -113,7 +115,9 @@ Important boundaries:
 - `data/GuideModels.kt`: channel, programme, provider and playback target model.
 - `data/ProviderRegistry.kt`: replaceable app-launch identifiers.
 - `data/SampleGuideRepository.kt`: illustrative now/next data; replace with API data.
-- `playback/AppHandoffLauncher.kt`: verified-link → app → Play Store fallback chain.
+- `playback/TvAppDiscovery.kt`: installed TV-app and official-URL handler discovery.
+- `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
+- `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.
 - `PlaybackSafetyTest.kt`: prevents sample broadcasters becoming direct streams.
@@ -140,7 +144,8 @@ next compatibility test, especially for installed broadcaster-app handoffs.
 ## Sky UK guide updates
 
 `epg/sky-uk.channels.xml` is the curated lineup: the main terrestrial channels,
-NOW Entertainment/Cinema/Sports channels, and discovery+ channels. It avoids the
+NOW Entertainment/Cinema/Sports channels (including U&Gold, U&Alibi, MTV, Comedy
+Central, Sky Kids and Sky Mix), and discovery+ channels. It avoids the
 duplicate regions and non-UK services in Sky's full list.
 
 To generate a fresh two-day guide and place it in the Android app assets, run:
@@ -176,8 +181,8 @@ before distributing an app or republishing the generated listings commercially.
   TV, Google TV Streamer, NVIDIA Shield, and selected Sony/Philips/TCL televisions).
 - Obtain written EPG/logo usage rights. Ask each provider for its Android TV package,
   supported App Link/channel URI, attribution and certification requirements.
-- Test app-home launches physically. Treat content-level deep linking as unavailable
-  until a provider confirms it.
+- Test automatic and manual app matching, channel URLs and app-home fallback on each
+  physical TV family. Treat exact tuning as unavailable until it passes that test.
 
 ### Phase 1 — guide launcher MVP (3–4 weeks)
 

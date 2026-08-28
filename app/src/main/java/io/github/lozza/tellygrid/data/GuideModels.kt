@@ -16,7 +16,8 @@ data class ProviderApp(
     val id: ProviderId,
     val displayName: String,
     val packageCandidates: List<String>,
-    val playStorePackage: String,
+    val discoveryTerms: List<String>,
+    val discoveryUris: List<String>,
 )
 
 sealed interface PlaybackTarget {
@@ -35,7 +36,7 @@ sealed interface PlaybackTarget {
      */
     data class ProviderHandoff(
         val provider: ProviderApp,
-        val verifiedDeepLinkUri: String? = null,
+        val channelUri: String? = null,
     ) : PlaybackTarget
 
     data class Unavailable(val reason: String) : PlaybackTarget

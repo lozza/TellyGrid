@@ -12,22 +12,33 @@ sealed interface LaunchResult {
 }
 
 class AppHandoffLauncher(private val context: Context) {
+    private val discovery = TvAppDiscovery(context)
+    private val preferences = ProviderPreferences(context)
+
     fun launch(target: PlaybackTarget.ProviderHandoff): LaunchResult {
         val provider = target.provider
+        val packages = buildList {
+            preferences.selectedPackage(provider.id)?.let(::add)
+            addAll(provider.packageCandidates)
+            addAll(discovery.suggestedApps(provider).map { it.packageName })
+        }.distinct()
 
-        // Prefer a content-level link only after the provider has documented/issued it.
-        target.verifiedDeepLinkUri?.let { uri ->
-            provider.packageCandidates.forEach { packageName ->
+        // Only send a channel link to an installed app that declares it can handle it.
+        target.channelUri?.let { uri ->
+            packages.forEach { packageName ->
+                if (!discovery.canHandle(packageName, uri)) return@forEach
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
                     setPackage(packageName)
+                    addCategory(Intent.CATEGORY_BROWSABLE)
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-                if (tryStart(intent)) return LaunchResult.Opened(provider.displayName)
+                if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} live channel")
             }
         }
 
-        // Reliable MVP fallback: open the provider app at its own home screen.
-        provider.packageCandidates.forEach { packageName ->
+        // Fallback to the installed provider app. Never redirect a Freeview Play TV
+        // to a retail Play Store build that may be incompatible with the device.
+        packages.forEach { packageName ->
             context.packageManager.getLeanbackLaunchIntentForPackage(packageName)?.let { intent ->
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 if (tryStart(intent)) return LaunchResult.Opened(provider.displayName)
@@ -38,22 +49,7 @@ class AppHandoffLauncher(private val context: Context) {
             }
         }
 
-        // If absent, show the TV Play Store listing (or its web equivalent).
-        val market = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("market://details?id=${provider.playStorePackage}"),
-        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        if (tryStart(market)) return LaunchResult.Opened("Google Play")
-
-        val web = Intent(
-            Intent.ACTION_VIEW,
-            Uri.parse("https://play.google.com/store/apps/details?id=${provider.playStorePackage}"),
-        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        return if (tryStart(web)) {
-            LaunchResult.Opened("Google Play")
-        } else {
-            LaunchResult.Failed("${provider.displayName} is not installed on this TV.")
-        }
+        return LaunchResult.Failed("No ${provider.displayName} app is mapped. Open App setup to choose the preinstalled TV app.")
     }
 
     private fun tryStart(intent: Intent): Boolean = try {

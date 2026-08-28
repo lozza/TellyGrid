@@ -10,6 +10,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import io.github.lozza.tellygrid.data.GuideChannel
 import io.github.lozza.tellygrid.data.PlaybackTarget
+import io.github.lozza.tellygrid.data.ProviderApp
+import io.github.lozza.tellygrid.data.ProviderId
+import io.github.lozza.tellygrid.playback.InstalledTvApp
 import io.github.lozza.tellygrid.playback.LaunchResult
 
 @Composable
@@ -17,9 +20,15 @@ fun UnifiedGuideApp(
     channels: List<GuideChannel>,
     guideStatus: String,
     onHandoff: (PlaybackTarget.ProviderHandoff) -> LaunchResult,
+    providers: List<ProviderApp>,
+    installedApps: List<InstalledTvApp>,
+    suggestedApps: Map<ProviderId, List<InstalledTvApp>>,
+    selections: Map<ProviderId, String>,
+    onProviderSelected: (ProviderId, String?) -> Unit,
 ) {
     var playerTarget by remember { mutableStateOf<PlaybackTarget.LicensedStream?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
+    var showingSetup by remember { mutableStateOf(false) }
 
     MaterialTheme(
         colorScheme = MaterialTheme.colorScheme.copy(
@@ -31,13 +40,23 @@ fun UnifiedGuideApp(
         ),
     ) {
         val playing = playerTarget
-        if (playing != null) {
+        if (showingSetup) {
+            ProviderSetupScreen(
+                providers = providers,
+                installedApps = installedApps,
+                suggestedApps = suggestedApps,
+                selections = selections,
+                onSelect = onProviderSelected,
+                onBack = { showingSetup = false },
+            )
+        } else if (playing != null) {
             BackHandler { playerTarget = null }
             PlayerScreen(target = playing, onBack = { playerTarget = null })
         } else {
             GuideScreen(
                 channels = channels,
                 status = status ?: guideStatus,
+                onOpenSetup = { showingSetup = true },
                 onChannelSelected = { channel ->
                     when (val target = channel.playback) {
                         is PlaybackTarget.LicensedStream -> playerTarget = target

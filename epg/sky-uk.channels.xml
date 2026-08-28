@@ -16,6 +16,12 @@
   <channel site="sky.com" site_id="GB#1165" lang="en" xmltv_id="sky-nature">Sky Nature HD</channel>
   <channel site="sky.com" site_id="GB#4063" lang="en" xmltv_id="sky-arts">Sky Arts HD</channel>
   <channel site="sky.com" site_id="GB#4086" lang="en" xmltv_id="sky-history">Sky History HD</channel>
+  <channel site="sky.com" site_id="GB#6513" lang="en" xmltv_id="u-gold">U&amp;Gold HD</channel>
+  <channel site="sky.com" site_id="GB#3825" lang="en" xmltv_id="u-alibi">U&amp;Alibi HD</channel>
+  <channel site="sky.com" site_id="GB#3831" lang="en" xmltv_id="mtv">MTV HD</channel>
+  <channel site="sky.com" site_id="GB#4056" lang="en" xmltv_id="comedy-central">Comedy Central HD</channel>
+  <channel site="sky.com" site_id="GB#1147" lang="en" xmltv_id="sky-kids">Sky Kids HD</channel>
+  <channel site="sky.com" site_id="GB#1831" lang="en" xmltv_id="sky-mix">Sky Mix HD</channel>
 
   <channel site="sky.com" site_id="GB#4003" lang="en" xmltv_id="discovery">Discovery HD</channel>
   <channel site="sky.com" site_id="GB#3812" lang="en" xmltv_id="tlc">TLC HD</channel>

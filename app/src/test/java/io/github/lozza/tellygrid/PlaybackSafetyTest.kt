@@ -1,6 +1,7 @@
 package io.github.lozza.tellygrid
 
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Test
 import io.github.lozza.tellygrid.data.PlaybackTarget
 import io.github.lozza.tellygrid.data.ProviderId
@@ -30,6 +31,15 @@ class PlaybackSafetyTest {
     fun `Sky catalog always hands off to an authorised provider app`() {
         ChannelCatalog.channels.forEach { channel ->
             assertTrue(channel.provider.id != ProviderId.OWNED_STREAM)
+        }
+    }
+
+    @Test
+    fun `NOW entertainment lineup includes advertised channels`() {
+        val expected = setOf("u-gold", "u-alibi", "mtv", "comedy-central", "sky-kids", "sky-mix")
+        assertEquals(expected, ChannelCatalog.byXmlTvId.keys.intersect(expected))
+        expected.forEach { id ->
+            assertEquals(ProviderId.NOW, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
         }
     }
 }
