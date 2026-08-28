@@ -29,6 +29,13 @@ object ProviderRegistry {
         discoveryTerms = listOf("channel 5", "my5", "channel5"),
         discoveryUris = listOf("https://www.channel5.com/live/channel-5"),
     )
+    val u = ProviderApp(
+        id = ProviderId.U,
+        displayName = "U",
+        packageCandidates = listOf("uk.co.freeview.uktv"),
+        discoveryTerms = listOf("u&", "uktv", "dave", "drama", "yesterday"),
+        discoveryUris = emptyList(),
+    )
     val now = ProviderApp(
         id = ProviderId.NOW,
         displayName = "NOW",
@@ -47,5 +54,5 @@ object ProviderRegistry {
         discoveryUris = listOf("https://www.discoveryplus.com/gb"),
     )
 
-    val all = listOf(bbc, itvx, channel4, five, now, discoveryPlus)
+    val all = listOf(bbc, itvx, channel4, five, u, now, discoveryPlus)
 }

@@ -7,6 +7,7 @@ enum class ProviderId {
     ITVX,
     CHANNEL_4,
     FIVE,
+    U,
     NOW,
     DISCOVERY_PLUS,
     OWNED_STREAM
@@ -37,6 +38,8 @@ sealed interface PlaybackTarget {
     data class ProviderHandoff(
         val provider: ProviderApp,
         val channelUri: String? = null,
+        /** Freeview logical channel number used for a local TV-tuner handoff. */
+        val terrestrialLcn: Int? = null,
     ) : PlaybackTarget
 
     data class Unavailable(val reason: String) : PlaybackTarget

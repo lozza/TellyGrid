@@ -153,7 +153,11 @@ private fun ChannelRow(channel: GuideChannel, onClick: () -> Unit) {
         )
         Text(
             text = when (val target = channel.playback) {
-                is PlaybackTarget.ProviderHandoff -> "OPEN ${target.provider.displayName.uppercase()}"
+                is PlaybackTarget.ProviderHandoff -> if (target.terrestrialLcn != null) {
+                    "WATCH LIVE TV"
+                } else {
+                    "OPEN ${target.provider.displayName.uppercase()}"
+                }
                 is PlaybackTarget.LicensedStream -> "WATCH"
                 is PlaybackTarget.Unavailable -> "UNAVAILABLE"
             },

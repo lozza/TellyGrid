@@ -27,6 +27,12 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data
+                android:mimeType="vnd.android.cursor.item/channel"
+                android:scheme="content" />
+        </intent>
         <package android:name="bbc.iplayer.android" />
         <package android:name="com.nvidia.bbciplayer" />
         <package android:name="air.ITVMobilePlayer" />
@@ -36,6 +42,7 @@
         <package android:name="com.bskyb.nowtv.beta" />
         <package android:name="com.discovery.dplay" />
         <package android:name="com.discovery.discoveryplus.mobile" />
+        <package android:name="uk.co.freeview.uktv" />
     </queries>
 
     <application

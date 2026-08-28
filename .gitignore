@@ -6,3 +6,4 @@ build/
 local.properties
 work/
 *.iml
+dist/TellyGrid-v*.apk

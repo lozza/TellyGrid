@@ -16,6 +16,7 @@ class PlaybackSafetyTest {
             ProviderId.ITVX,
             ProviderId.CHANNEL_4,
             ProviderId.FIVE,
+            ProviderId.U,
             ProviderId.NOW,
             ProviderId.DISCOVERY_PLUS,
         )
@@ -41,5 +42,27 @@ class PlaybackSafetyTest {
         expected.forEach { id ->
             assertEquals(ProviderId.NOW, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
         }
+    }
+
+    @Test
+    fun `main terrestrial channels carry their Freeview logical channel numbers`() {
+        val expected = mapOf(
+            "bbc-one" to 1,
+            "bbc-two" to 2,
+            "itv1" to 3,
+            "channel-4" to 4,
+            "five" to 5,
+        )
+
+        expected.forEach { (id, lcn) ->
+            assertEquals(lcn, ChannelCatalog.byXmlTvId.getValue(id).terrestrialLcn)
+        }
+    }
+
+    @Test
+    fun `expanded terrestrial lineup has unique Freeview channel numbers`() {
+        val freeview = ChannelCatalog.channels.filter { it.terrestrialLcn != null }
+        assertTrue(freeview.size >= 30)
+        assertEquals(freeview.size, freeview.map { it.terrestrialLcn }.distinct().size)
     }
 }

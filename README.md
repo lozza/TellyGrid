@@ -18,7 +18,9 @@ newer builds.
 
 TellyGrid is a source-available guide-and-launcher for Android TV/Google TV. It presents BBC, ITV,
 Channel 4, 5, NOW, and discovery+ channels in one remote-friendly screen. Selecting
-a broadcaster channel opens the provider's installed app. The same architecture can
+a supported Freeview channel opens that exact station in the TV's native Live TV
+player; other channels hand off to the provider's installed app. The same
+architecture can
 play a stream in-app only when the product owner has explicit distribution rights,
 an authorised manifest, and any required DRM licence integration.
 
@@ -30,6 +32,10 @@ URLs, credentials, tokens, or copied logos.
 The app refreshes from `https://lozza.github.io/TellyGrid/guide.xml`. GitHub Actions
 regenerates and publishes that guide twice daily; the bundled copy keeps the app
 usable during a temporary GitHub or source outage.
+
+Alpha 3 expands the curated feed from 41 to 67 channels. Its Freeview section now
+includes the main BBC, ITV, Channel 4, 5, U and discovery-owned terrestrial services,
+followed by the selected NOW Entertainment, Cinema and Sports lineups.
 
 ## Feasibility
 
@@ -49,12 +55,15 @@ model, certification, region, subscription and app-store catalogue. BBC iPlayer 
 particular must be tested on every target device family rather than assuming all
 generic Android TV boxes are supported.
 
-TellyGrid discovers TV-launchable apps and handlers for official broadcaster URLs,
+TellyGrid resolves its configured terrestrial channels to the local tuner on
+compatible Philips Freeview Play televisions. This direct route was verified on a
+2021/22 Philips Android 11 TV. It also discovers TV-launchable apps and handlers for
+official broadcaster URLs,
 including manufacturer-supplied Freeview Play variants. `APP SETUP` lets the user
 override automatic matching for each provider. A channel URL is sent only to the
 chosen installed app when Android reports that app can handle it; app-home launch is
-the fallback. Exact tuning remains provider/device dependent and requires physical-TV
-testing.
+the fallback. Exact tuning on other manufacturers remains device dependent and needs
+physical-TV testing.
 
 ## UX blueprint
 
@@ -66,7 +75,8 @@ The scaffold implements the first useful slice:
   badge, current programme, next programme and a clear destination label.
 - Up/down moves between channels. Select opens the programme. Focus has a high-
   contrast border and does not depend on colour alone.
-- The launch order is supported channel link, selected TV app, then automatically
+- The launch order is local Freeview tuner, supported channel link, selected TV app,
+  then automatically
   detected TV app. It never redirects a Freeview Play TV to an incompatible retail
   Play Store build. Returning from the provider app returns to the guide.
 - A licensed stream opens a full-screen Media3 player; Back returns to the guide.
@@ -116,7 +126,8 @@ Important boundaries:
 - `data/ProviderRegistry.kt`: replaceable app-launch identifiers.
 - `data/SampleGuideRepository.kt`: illustrative now/next data; replace with API data.
 - `playback/TvAppDiscovery.kt`: installed TV-app and official-URL handler discovery.
-- `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
+- `playback/NativeTvChannelLauncher.kt`: local Freeview LCN → Android TV channel handoff.
+- `playback/AppHandoffLauncher.kt`: local tuner → supported channel link → selected/detected app fallback.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.
@@ -138,8 +149,8 @@ unit tests and produced a debug APK using the Android Studio installation and SD
 this computer. The ready-to-install build is at `dist/unified-guide-debug.apk`.
 
 The app has also been installed and checked on an API 34 Android TV emulator at
-1920×1080, including D-pad focus navigation. A physical Android 11 TV remains the
-next compatibility test, especially for installed broadcaster-app handoffs.
+1920×1080, including D-pad focus navigation. On 28 August 2026, direct BBC One
+tuning was verified end-to-end from TellyGrid on a Philips Android 11 Freeview Play TV.
 
 ## Sky UK guide updates
 

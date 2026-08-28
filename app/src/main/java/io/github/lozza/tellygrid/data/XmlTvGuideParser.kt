@@ -72,7 +72,11 @@ class XmlTvGuideParser {
                 name = catalog.displayName,
                 providerLabel = catalog.providerLabel,
                 accentArgb = catalog.accentArgb,
-                playback = PlaybackTarget.ProviderHandoff(catalog.provider, catalog.channelUri),
+                playback = PlaybackTarget.ProviderHandoff(
+                    provider = catalog.provider,
+                    channelUri = catalog.channelUri,
+                    terrestrialLcn = catalog.terrestrialLcn,
+                ),
                 programmes = schedule,
             )
         }

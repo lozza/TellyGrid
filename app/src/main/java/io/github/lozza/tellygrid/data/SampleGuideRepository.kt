@@ -39,7 +39,10 @@ class SampleGuideRepository(private val clock: Clock = Clock.systemUTC()) {
             name = name,
             providerLabel = providerLabel,
             accentArgb = accent,
-            playback = PlaybackTarget.ProviderHandoff(provider),
+            playback = PlaybackTarget.ProviderHandoff(
+                provider = provider,
+                terrestrialLcn = number.takeIf { it in 1..5 },
+            ),
             programmes = listOf(
                 Programme("$id-now", nowTitle, "Illustrative guide data — connect a licensed EPG for production.", firstStart, firstEnd),
                 Programme("$id-next", nextTitle, "Up next", firstEnd, firstEnd.plus(Duration.ofMinutes(60))),

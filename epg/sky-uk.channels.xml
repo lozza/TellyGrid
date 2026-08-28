@@ -5,6 +5,32 @@
   <channel site="sky.com" site_id="GB#1043" lang="en" xmltv_id="itv1">ITV1 London HD</channel>
   <channel site="sky.com" site_id="GB#1202" lang="en" xmltv_id="channel-4">Channel 4 HD</channel>
   <channel site="sky.com" site_id="GB#4058" lang="en" xmltv_id="five">5 HD</channel>
+  <channel site="sky.com" site_id="GB#6532" lang="en" xmltv_id="itv2">ITV2 HD</channel>
+  <channel site="sky.com" site_id="GB#2086" lang="en" xmltv_id="bbc-four">BBC Four HD</channel>
+  <channel site="sky.com" site_id="GB#6533" lang="en" xmltv_id="itv3">ITV3 HD</channel>
+  <channel site="sky.com" site_id="GB#4076" lang="en" xmltv_id="e4">E4 HD</channel>
+  <channel site="sky.com" site_id="GB#4044" lang="en" xmltv_id="film4">Film4 HD</channel>
+  <channel site="sky.com" site_id="GB#4043" lang="en" xmltv_id="more4">More4 HD</channel>
+  <channel site="sky.com" site_id="GB#3809" lang="en" xmltv_id="u-dave">U&amp;Dave HD</channel>
+  <channel site="sky.com" site_id="GB#2612" lang="en" xmltv_id="u-drama">U&amp;Drama</channel>
+  <channel site="sky.com" site_id="GB#3022" lang="en" xmltv_id="5usa">5 USA</channel>
+  <channel site="sky.com" site_id="GB#2080" lang="en" xmltv_id="bbc-three">BBC Three HD</channel>
+  <channel site="sky.com" site_id="GB#2617" lang="en" xmltv_id="u-w">U&amp;W</channel>
+  <channel site="sky.com" site_id="GB#6534" lang="en" xmltv_id="itv4">ITV4 HD</channel>
+  <channel site="sky.com" site_id="GB#2305" lang="en" xmltv_id="u-yesterday">U&amp;Yesterday</channel>
+  <channel site="sky.com" site_id="GB#3026" lang="en" xmltv_id="itv-quiz">ITV Quiz HD</channel>
+  <channel site="sky.com" site_id="GB#3023" lang="en" xmltv_id="5star">5STAR</channel>
+  <channel site="sky.com" site_id="GB#1036" lang="en" xmltv_id="5action">5ACTION</channel>
+  <channel site="sky.com" site_id="GB#3618" lang="en" xmltv_id="dmax">DMAX</channel>
+  <channel site="sky.com" site_id="GB#3590" lang="en" xmltv_id="food-network">Food Network</channel>
+  <channel site="sky.com" site_id="GB#2325" lang="en" xmltv_id="really">Really</channel>
+  <channel site="sky.com" site_id="GB#3028" lang="en" xmltv_id="5select">5SELECT</channel>
+  <channel site="sky.com" site_id="GB#3150" lang="en" xmltv_id="4seven">4seven</channel>
+  <channel site="sky.com" site_id="GB#2302" lang="en" xmltv_id="u-eden">U&amp;Eden</channel>
+  <channel site="sky.com" site_id="GB#2078" lang="en" xmltv_id="cbbc">CBBC HD</channel>
+  <channel site="sky.com" site_id="GB#2088" lang="en" xmltv_id="cbeebies">CBeebies HD</channel>
+  <channel site="sky.com" site_id="GB#2085" lang="en" xmltv_id="bbc-news">BBC NEWS HD</channel>
+  <channel site="sky.com" site_id="GB#3020" lang="en" xmltv_id="bbc-parliament">BBC Parl HD</channel>
 
   <channel site="sky.com" site_id="GB#4061" lang="en" xmltv_id="sky-showcase">Sky Showcase HD</channel>
   <channel site="sky.com" site_id="GB#4053" lang="en" xmltv_id="sky-atlantic">Sky Atlantic HD</channel>
