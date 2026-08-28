@@ -32,13 +32,13 @@ sealed interface PlaybackTarget {
     ) : PlaybackTarget
 
     /**
-     * `verifiedDeepLinkUri` stays null until a provider-published or partner-issued
-     * channel link has been verified on every supported TV device family.
+     * `channelUri` stays null until a provider channel link has been verified on a
+     * supported TV device; the installed app remains the safe fallback.
      */
     data class ProviderHandoff(
         val provider: ProviderApp,
         val channelUri: String? = null,
-        /** Freeview logical channel number used for a local TV-tuner handoff. */
+        /** Freeview logical channel number used for local in-app TV-tuner playback. */
         val terrestrialLcn: Int? = null,
     ) : PlaybackTarget
 

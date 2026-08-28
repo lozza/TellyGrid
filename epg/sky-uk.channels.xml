@@ -32,7 +32,7 @@
   <channel site="sky.com" site_id="GB#2085" lang="en" xmltv_id="bbc-news">BBC NEWS HD</channel>
   <channel site="sky.com" site_id="GB#3020" lang="en" xmltv_id="bbc-parliament">BBC Parl HD</channel>
 
-  <channel site="sky.com" site_id="GB#4061" lang="en" xmltv_id="sky-showcase">Sky Showcase HD</channel>
+  <channel site="sky.com" site_id="GB#4061" lang="en" xmltv_id="sky-one">Sky One HD</channel>
   <channel site="sky.com" site_id="GB#4053" lang="en" xmltv_id="sky-atlantic">Sky Atlantic HD</channel>
   <channel site="sky.com" site_id="GB#4066" lang="en" xmltv_id="sky-witness">Sky Witness HD</channel>
   <channel site="sky.com" site_id="GB#1143" lang="en" xmltv_id="sky-comedy">Sky Comedy HD</channel>
@@ -47,12 +47,22 @@
   <channel site="sky.com" site_id="GB#3831" lang="en" xmltv_id="mtv">MTV HD</channel>
   <channel site="sky.com" site_id="GB#4056" lang="en" xmltv_id="comedy-central">Comedy Central HD</channel>
   <channel site="sky.com" site_id="GB#1147" lang="en" xmltv_id="sky-kids">Sky Kids HD</channel>
+  <channel site="sky.com" site_id="GB#5609" lang="en" xmltv_id="boomerang">Boomerang</channel>
+  <channel site="sky.com" site_id="GB#4077" lang="en" xmltv_id="cartoon-network">Cartoon Network HD</channel>
+  <channel site="sky.com" site_id="GB#4069" lang="en" xmltv_id="nickelodeon">Nickelodeon HD</channel>
+  <channel site="sky.com" site_id="GB#1371" lang="en" xmltv_id="cartoonito">Cartoonito</channel>
+  <channel site="sky.com" site_id="GB#4039" lang="en" xmltv_id="nick-jr">Nick Jr. HD</channel>
+  <channel site="sky.com" site_id="GB#1849" lang="en" xmltv_id="nicktoons">Nicktoons</channel>
+  <channel site="sky.com" site_id="GB#4050" lang="en" xmltv_id="sky-news">Sky News HD</channel>
   <channel site="sky.com" site_id="GB#1831" lang="en" xmltv_id="sky-mix">Sky Mix HD</channel>
 
   <channel site="sky.com" site_id="GB#4003" lang="en" xmltv_id="discovery">Discovery HD</channel>
   <channel site="sky.com" site_id="GB#3812" lang="en" xmltv_id="tlc">TLC HD</channel>
   <channel site="sky.com" site_id="GB#2402" lang="en" xmltv_id="animal-planet">Animal Planet</channel>
   <channel site="sky.com" site_id="GB#2413" lang="en" xmltv_id="investigation-discovery">Investigation Discovery</channel>
+  <channel site="sky.com" site_id="GB#2406" lang="en" xmltv_id="discovery-science">Discovery Science</channel>
+  <channel site="sky.com" site_id="GB#2407" lang="en" xmltv_id="discovery-history">Discovery History</channel>
+  <channel site="sky.com" site_id="GB#2409" lang="en" xmltv_id="discovery-turbo">Discovery Turbo</channel>
   <channel site="sky.com" site_id="GB#1130" lang="en" xmltv_id="quest">Quest HD</channel>
   <channel site="sky.com" site_id="GB#2411" lang="en" xmltv_id="quest-red">Quest Red</channel>
 

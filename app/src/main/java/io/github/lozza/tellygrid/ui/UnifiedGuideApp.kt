@@ -14,12 +14,15 @@ import io.github.lozza.tellygrid.data.ProviderApp
 import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.playback.InstalledTvApp
 import io.github.lozza.tellygrid.playback.LaunchResult
+import io.github.lozza.tellygrid.playback.NativeTvChannel
 
 @Composable
 fun UnifiedGuideApp(
     channels: List<GuideChannel>,
     guideStatus: String,
     onHandoff: (PlaybackTarget.ProviderHandoff) -> LaunchResult,
+    onResolveNativeChannel: (Int) -> NativeTvChannel?,
+    onNativeChannelFallback: (NativeTvChannel) -> LaunchResult,
     providers: List<ProviderApp>,
     installedApps: List<InstalledTvApp>,
     suggestedApps: Map<ProviderId, List<InstalledTvApp>>,
@@ -27,6 +30,7 @@ fun UnifiedGuideApp(
     onProviderSelected: (ProviderId, String?) -> Unit,
 ) {
     var playerTarget by remember { mutableStateOf<PlaybackTarget.LicensedStream?>(null) }
+    var nativeChannel by remember { mutableStateOf<NativeTvChannel?>(null) }
     var status by remember { mutableStateOf<String?>(null) }
     var showingSetup by remember { mutableStateOf(false) }
 
@@ -49,6 +53,20 @@ fun UnifiedGuideApp(
                 onSelect = onProviderSelected,
                 onBack = { showingSetup = false },
             )
+        } else if (nativeChannel != null) {
+            val channel = nativeChannel!!
+            BackHandler { nativeChannel = null }
+            NativeTvPlayerScreen(
+                channel = channel,
+                onBack = { nativeChannel = null },
+                onTuneFailed = {
+                    nativeChannel = null
+                    status = when (val result = onNativeChannelFallback(channel)) {
+                        is LaunchResult.Opened -> "Opening ${result.destination}"
+                        is LaunchResult.Failed -> result.message
+                    }
+                },
+            )
         } else if (playing != null) {
             BackHandler { playerTarget = null }
             PlayerScreen(target = playing, onBack = { playerTarget = null })
@@ -61,6 +79,11 @@ fun UnifiedGuideApp(
                     when (val target = channel.playback) {
                         is PlaybackTarget.LicensedStream -> playerTarget = target
                         is PlaybackTarget.ProviderHandoff -> {
+                            val resolved = target.terrestrialLcn?.let(onResolveNativeChannel)
+                            if (resolved != null) {
+                                nativeChannel = resolved
+                                return@GuideScreen
+                            }
                             status = when (val result = onHandoff(target)) {
                                 is LaunchResult.Opened -> "Opening ${result.destination}"
                                 is LaunchResult.Failed -> result.message

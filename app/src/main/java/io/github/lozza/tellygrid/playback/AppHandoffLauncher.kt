@@ -14,16 +14,9 @@ sealed interface LaunchResult {
 class AppHandoffLauncher(private val context: Context) {
     private val discovery = TvAppDiscovery(context)
     private val preferences = ProviderPreferences(context)
-    private val nativeTvLauncher = NativeTvChannelLauncher(context)
 
     fun launch(target: PlaybackTarget.ProviderHandoff): LaunchResult {
         val provider = target.provider
-
-        // Prefer the TV's own tuned Freeview service when the guide channel has
-        // a terrestrial LCN. This opens the selected live channel immediately.
-        target.terrestrialLcn?.let { lcn ->
-            nativeTvLauncher.launch(lcn)?.let { return it }
-        }
 
         val packages = buildList {
             preferences.selectedPackage(provider.id)?.let(::add)

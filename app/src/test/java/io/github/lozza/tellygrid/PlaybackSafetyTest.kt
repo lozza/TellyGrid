@@ -37,10 +37,33 @@ class PlaybackSafetyTest {
 
     @Test
     fun `NOW entertainment lineup includes advertised channels`() {
-        val expected = setOf("u-gold", "u-alibi", "mtv", "comedy-central", "sky-kids", "sky-mix")
+        val expected = setOf("sky-one", "u-gold", "u-alibi", "mtv", "comedy-central", "sky-kids", "sky-mix")
         assertEquals(expected, ChannelCatalog.byXmlTvId.keys.intersect(expected))
         expected.forEach { id ->
             assertEquals(ProviderId.NOW, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
+        }
+    }
+
+    @Test
+    fun `every NOW channel has a channel-specific deep link`() {
+        ChannelCatalog.channels
+            .filter { it.provider.id == ProviderId.NOW }
+            .forEach { channel ->
+                assertTrue("${channel.displayName} needs a NOW channel link", channel.channelUri != null)
+                assertTrue(channel.channelUri!!.contains("%22serviceKey%22"))
+            }
+    }
+
+    @Test
+    fun `discovery plus lineup includes its UK entertainment channels`() {
+        val expected = setOf(
+            "discovery", "tlc", "quest", "quest-red", "investigation-discovery",
+            "food-network", "hgtv", "dmax", "animal-planet", "discovery-science",
+            "discovery-history", "discovery-turbo",
+        )
+        assertEquals(expected, ChannelCatalog.byXmlTvId.keys.intersect(expected))
+        expected.forEach { id ->
+            assertEquals(ProviderId.DISCOVERY_PLUS, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
         }
     }
 

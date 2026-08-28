@@ -58,13 +58,23 @@ class XmlTvGuideParser {
             event = parser.next()
         }
 
-        return ChannelCatalog.channels.mapNotNull { catalog ->
-            val schedule = programmes[catalog.xmlTvId]
+        return ChannelCatalog.channels.map { catalog ->
+            val listedSchedule = programmes[catalog.xmlTvId]
                 ?.distinctBy { it.id }
                 ?.sortedBy { it.startsAt }
                 ?.take(12)
                 .orEmpty()
-            if (schedule.isEmpty()) return@mapNotNull null
+            val schedule = listedSchedule.ifEmpty {
+                listOf(
+                    Programme(
+                        id = "${catalog.xmlTvId}-listings-unavailable",
+                        title = "Listings unavailable",
+                        synopsis = "This channel is available through ${catalog.providerLabel}.",
+                        startsAt = now,
+                        endsAt = now.plusSeconds(24 * 60 * 60),
+                    ),
+                )
+            }
 
             GuideChannel(
                 id = catalog.xmlTvId,

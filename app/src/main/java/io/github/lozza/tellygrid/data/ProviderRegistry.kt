@@ -41,7 +41,7 @@ object ProviderRegistry {
         displayName = "NOW",
         packageCandidates = listOf("com.bskyb.nowtv.beta"),
         discoveryTerms = listOf("now", "nowtv", "bskyb"),
-        discoveryUris = listOf("https://www.nowtv.com/watch"),
+        discoveryUris = listOf("https://tv.client.ott.sky.com/"),
     )
     val discoveryPlus = ProviderApp(
         id = ProviderId.DISCOVERY_PLUS,

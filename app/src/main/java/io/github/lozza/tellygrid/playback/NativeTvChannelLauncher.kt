@@ -5,24 +5,40 @@ import android.content.Context
 import android.content.Intent
 import android.database.Cursor
 import android.media.tv.TvContract
+import android.media.tv.TvInputInfo
+import android.media.tv.TvInputManager
 import android.net.Uri
+
+data class NativeTvChannel(
+    val lcn: Int,
+    val inputId: String,
+    val channelUri: Uri,
+)
 
 /**
  * Resolves a Freeview logical channel number to a channel installed in the TV's
- * local tuner database, then hands it to the system Live TV player.
+ * local tuner database and identifies the Android TV tuner input for in-app TvView.
  *
  * The Android TV channel database cannot normally be enumerated by third-party
  * apps. Philips Freeview Play sets expose a read-only EPG index containing the
- * corresponding TvContract channel IDs, so that is used when available. Other
- * TVs safely fall through to the broadcaster-app handoff.
+ * corresponding TvContract channel IDs, so that is used when available. The
+ * external launcher remains a fallback if a TvView session cannot be created.
  */
 class NativeTvChannelLauncher(private val context: Context) {
-    fun launch(lcn: Int): LaunchResult? {
+    fun resolve(lcn: Int): NativeTvChannel? {
         val channelId = findPhilipsFreeviewChannelId(lcn) ?: return null
-        val channelUri = TvContract.buildChannelUri(channelId)
+        val inputId = findTunerInputId() ?: return null
+        return NativeTvChannel(
+            lcn = lcn,
+            inputId = inputId,
+            channelUri = TvContract.buildChannelUri(channelId),
+        )
+    }
+
+    fun launchExternal(channel: NativeTvChannel): LaunchResult? {
         val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(channelUri, CHANNEL_MIME_TYPE)
-            putExtra("channel_id", channelId.toInt())
+            setDataAndType(channel.channelUri, CHANNEL_MIME_TYPE)
+            putExtra("channel_id", channel.channelUri.lastPathSegment?.toIntOrNull())
             putExtra("zap_method", 2)
             putExtra("method_id", 9)
             putExtra("source_id", 0)
@@ -31,12 +47,21 @@ class NativeTvChannelLauncher(private val context: Context) {
 
         return try {
             context.startActivity(intent)
-            LaunchResult.Opened("Freeview channel $lcn")
+            LaunchResult.Opened("Freeview channel ${channel.lcn}")
         } catch (_: ActivityNotFoundException) {
             null
         } catch (_: SecurityException) {
             null
         }
+    }
+
+    private fun findTunerInputId(): String? {
+        val manager = context.getSystemService(TvInputManager::class.java) ?: return null
+        return manager.tvInputList
+            .filter { it.type == TvInputInfo.TYPE_TUNER }
+            .sortedByDescending { it.id.contains("TunerInputService/HW0", ignoreCase = true) }
+            .firstOrNull()
+            ?.id
     }
 
     private fun findPhilipsFreeviewChannelId(lcn: Int): Long? {

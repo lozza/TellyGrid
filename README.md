@@ -18,8 +18,9 @@ newer builds.
 
 TellyGrid is a source-available guide-and-launcher for Android TV/Google TV. It presents BBC, ITV,
 Channel 4, 5, NOW, and discovery+ channels in one remote-friendly screen. Selecting
-a supported Freeview channel opens that exact station in the TV's native Live TV
-player; other channels hand off to the provider's installed app. The same
+a supported Freeview channel plays through the television tuner inside TellyGrid,
+so one Back press returns to the guide; other channels hand off to the provider's
+installed app. The same
 architecture can
 play a stream in-app only when the product owner has explicit distribution rights,
 an authorised manifest, and any required DRM licence integration.
@@ -33,9 +34,12 @@ The app refreshes from `https://lozza.github.io/TellyGrid/guide.xml`. GitHub Act
 regenerates and publishes that guide twice daily; the bundled copy keeps the app
 usable during a temporary GitHub or source outage.
 
-Alpha 3 expands the curated feed from 41 to 67 channels. Its Freeview section now
-includes the main BBC, ITV, Channel 4, 5, U and discovery-owned terrestrial services,
-followed by the selected NOW Entertainment, Cinema and Sports lineups.
+Alpha 4 expands the catalogue to 78 channels. Its Freeview section includes the main
+BBC, ITV, Channel 4, 5, U and discovery-owned terrestrial services. The NOW rows use
+device-verified channel links for Entertainment, Kids, Cinema and Sports, including
+the current Sky One lineup. The discovery+ catalogue now includes all 12 live
+entertainment channels listed by discovery+ UK; HGTV remains visible with a listings-
+unavailable placeholder because it is not present in the Sky source.
 
 ## Feasibility
 
@@ -56,8 +60,9 @@ particular must be tested on every target device family rather than assuming all
 generic Android TV boxes are supported.
 
 TellyGrid resolves its configured terrestrial channels to the local tuner on
-compatible Philips Freeview Play televisions. This direct route was verified on a
-2021/22 Philips Android 11 TV. It also discovers TV-launchable apps and handlers for
+compatible Philips Freeview Play televisions and renders that tuner with Android's
+`TvView` inside TellyGrid. Exact tuning and one-press Back were verified on a 2021/22
+Philips Android 11 TV. It also discovers TV-launchable apps and handlers for
 official broadcaster URLs,
 including manufacturer-supplied Freeview Play variants. `APP SETUP` lets the user
 override automatic matching for each provider. A channel URL is sent only to the
@@ -78,7 +83,7 @@ The scaffold implements the first useful slice:
 - The launch order is local Freeview tuner, supported channel link, selected TV app,
   then automatically
   detected TV app. It never redirects a Freeview Play TV to an incompatible retail
-  Play Store build. Returning from the provider app returns to the guide.
+  Play Store build. Back from the in-app Freeview player returns to the guide.
 - A licensed stream opens a full-screen Media3 player; Back returns to the guide.
 
 The production version should add horizontal time navigation in 30-minute steps,
@@ -126,8 +131,9 @@ Important boundaries:
 - `data/ProviderRegistry.kt`: replaceable app-launch identifiers.
 - `data/SampleGuideRepository.kt`: illustrative now/next data; replace with API data.
 - `playback/TvAppDiscovery.kt`: installed TV-app and official-URL handler discovery.
-- `playback/NativeTvChannelLauncher.kt`: local Freeview LCN → Android TV channel handoff.
-- `playback/AppHandoffLauncher.kt`: local tuner → supported channel link → selected/detected app fallback.
+- `playback/NativeTvChannelLauncher.kt`: local Freeview LCN and tuner-input resolution.
+- `ui/NativeTvPlayerScreen.kt`: in-app Android `TvView`; Back resets it and restores the guide.
+- `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.
@@ -150,13 +156,14 @@ this computer. The ready-to-install build is at `dist/unified-guide-debug.apk`.
 
 The app has also been installed and checked on an API 34 Android TV emulator at
 1920×1080, including D-pad focus navigation. On 28 August 2026, direct BBC One
-tuning was verified end-to-end from TellyGrid on a Philips Android 11 Freeview Play TV.
+tuning and one-press Back were verified end-to-end from TellyGrid on a Philips Android
+11 Freeview Play TV. NOW's channel-specific route was also verified with Sky Atlantic.
 
 ## Sky UK guide updates
 
 `epg/sky-uk.channels.xml` is the curated lineup: the main terrestrial channels,
-NOW Entertainment/Cinema/Sports channels (including U&Gold, U&Alibi, MTV, Comedy
-Central, Sky Kids and Sky Mix), and discovery+ channels. It avoids the
+NOW Entertainment/Kids/Cinema/Sports channels (including Sky One, U&Gold, U&Alibi,
+MTV, Comedy Central, Sky Kids and Sky Mix), and discovery+ channels. It avoids the
 duplicate regions and non-UK services in Sky's full list.
 
 To generate a fresh two-day guide and place it in the Android app assets, run:
@@ -238,6 +245,9 @@ before distributing an app or republishing the generated listings commercially.
 - [ITVX supported TV platforms](https://help.itv.com/support/solutions/articles/204000073719-which-tvs-and-streaming-platforms-can-i-watch-itvx-on-)
 - [5 supported devices](https://help.channel5.com/hc/en-gb/articles/206668809-How-can-I-access-My5)
 - [NOW on Android TV](https://www.nowtv.com/gb/help/article/android-tv)
+- [NOW Entertainment live-channel lineup](https://www.nowtv.com/gb/help/article/entertainment-membership)
+- [Android `TvView`](https://developer.android.com/reference/android/media/tv/TvView)
+- [discovery+ UK live-channel lineup](https://support.discoveryplus.com/gb-en/Answer/Detail/000004301)
 - [BBC iPlayer live-TV listing](https://play.google.com/store/apps/details?id=bbc.iplayer.android)
 - [Channel 4 live-TV listing](https://play.google.com/store/apps/details?id=com.channel4.ondemand)
 - [5 live-TV listing](https://play.google.com/store/apps/details?id=com.mobileiq.demand5)
