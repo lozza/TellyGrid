@@ -215,12 +215,15 @@ class AppHandoffLauncher(private val context: Context) {
 
 }
 
+// Read fields through `spec`: inside apply, bare `categories` resolves to
+// Intent.getCategories() (null for a new intent) and crashed every handoff.
 private fun ProviderProgrammeIntent.toIntent(): Intent = Intent(action).apply {
-    setPackage(packageName)
-    componentClassName?.let { component = ComponentName(packageName, it) }
-    dataUri?.let { data = Uri.parse(it) }
-    mimeType?.let { type = it }
-    categories.forEach(::addCategory)
-    stringExtras.forEach { (key, value) -> putExtra(key, value) }
+    val spec = this@toIntent
+    setPackage(spec.packageName)
+    spec.componentClassName?.let { component = ComponentName(spec.packageName, it) }
+    spec.dataUri?.let { data = Uri.parse(it) }
+    spec.mimeType?.let { type = it }
+    spec.categories.forEach(::addCategory)
+    spec.stringExtras.forEach { (key, value) -> putExtra(key, value) }
     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }
