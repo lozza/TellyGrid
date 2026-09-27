@@ -2,15 +2,9 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#111827" />
+            <solid android:color="#0D0B18" />
         </shape>
     </item>
-    <item android:left="28dp" android:top="28dp" android:right="210dp" android:bottom="28dp">
-        <shape android:shape="rectangle">
-            <corners android:radius="10dp" />
-            <stroke android:width="5dp" android:color="#35E0A1" />
-            <solid android:color="#111827" />
-        </shape>
-    </item>
+    <item android:drawable="@drawable/banner_logo" android:gravity="center" />
 </layer-list>
 

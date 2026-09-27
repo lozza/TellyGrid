@@ -23,6 +23,9 @@ class XmlTvGuideParser {
         var activeStop: Instant? = null
         var title = "Programme information unavailable"
         var description = ""
+        var imageUri: String? = null
+        var episodeLabel: String? = null
+        var contentUri: String? = null
 
         while (event != XmlPullParser.END_DOCUMENT) {
             when (event) {
@@ -33,9 +36,27 @@ class XmlTvGuideParser {
                         activeStop = parseTime(parser.getAttributeValue(null, "stop"))
                         title = "Programme information unavailable"
                         description = ""
+                        imageUri = null
+                        episodeLabel = null
+                        contentUri = null
                     }
                     "title" -> if (activeChannel != null) title = parser.nextText().trim()
                     "desc" -> if (activeChannel != null) description = parser.nextText().trim()
+                    "icon" -> if (activeChannel != null && imageUri == null) {
+                        imageUri = parser.getAttributeValue(null, "src")?.trim()?.takeIf { it.startsWith("https://") }
+                    }
+                    "image" -> if (activeChannel != null && imageUri == null) {
+                        imageUri = parser.nextText().trim().takeIf { it.startsWith("https://") }
+                    }
+                    "episode-num" -> if (activeChannel != null) {
+                        val system = parser.getAttributeValue(null, "system")
+                        val value = parser.nextText().trim()
+                        when (system) {
+                            "onscreen" -> episodeLabel = value.takeIf { it.isNotBlank() }
+                            "discoveryplus" -> contentUri = value
+                        }
+                    }
+                    "url" -> if (activeChannel != null) contentUri = parser.nextText().trim()
                 }
                 XmlPullParser.END_TAG -> if (parser.name == "programme") {
                     val channelId = activeChannel
@@ -49,6 +70,12 @@ class XmlTvGuideParser {
                                 synopsis = description,
                                 startsAt = startsAt,
                                 endsAt = endsAt,
+                                imageUri = imageUri,
+                                episodeLabel = episodeLabel,
+                                contentUri = DiscoveryProgrammeLink.verifiedOrNull(channelId, contentUri)
+                                    ?: BbcIplayerProgrammeLink.verifiedOrNull(contentUri.takeIf {
+                                        ChannelCatalog.byXmlTvId[channelId]?.provider?.id == ProviderId.BBC_IPLAYER
+                                    }),
                             ),
                         )
                     }
@@ -62,7 +89,10 @@ class XmlTvGuideParser {
             val listedSchedule = programmes[catalog.xmlTvId]
                 ?.distinctBy { it.id }
                 ?.sortedBy { it.startsAt }
-                ?.take(12)
+                // Keep enough of the feed to cover the complete seven-day
+                // date strip. Short EPG slices made later dates look empty
+                // even though the provider had listings for them.
+                ?.take(96)
                 .orEmpty()
             val schedule = listedSchedule.ifEmpty {
                 listOf(
@@ -77,13 +107,16 @@ class XmlTvGuideParser {
             }
 
             GuideChannel(
-                id = catalog.xmlTvId,
+                id = catalog.id,
                 number = catalog.number,
                 name = catalog.displayName,
                 providerLabel = catalog.providerLabel,
                 accentArgb = catalog.accentArgb,
+                logoUri = catalog.logoUri,
+                category = catalog.category,
                 playback = PlaybackTarget.ProviderHandoff(
                     provider = catalog.provider,
+                    channelId = catalog.id,
                     channelUri = catalog.channelUri,
                     terrestrialLcn = catalog.terrestrialLcn,
                 ),

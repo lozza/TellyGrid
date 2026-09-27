@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Curated UK Pluto TV rows. Source IDs are copied from the pinned iptv-org/epg
+  pluto.tv_uk channel definition. They identify guide metadata and are used to
+  build a verified explicit Android TV EntryPoint route; no stream manifests are
+  bundled in this project.
+-->
+<channels>
+  <channel site="pluto.tv" site_id="661cf62d24e1d000087dae0d" lang="en" xmltv_id="Cops.us@SD">COPS</channel>
+  <channel site="pluto.tv" site_id="5d2c571faeb3e2738ae27933" lang="en" xmltv_id="5Cops.us@UK">5 Cops</channel>
+  <channel site="pluto.tv" site_id="5f27bbe4779de70007a6d1c1" lang="en" xmltv_id="GhostHunters.us@UK">Ghost Hunters</channel>
+  <channel site="pluto.tv" site_id="5ca1df0d50be2571e393ad31" lang="en" xmltv_id="DeadlyWomen.us@UK">Deadly Women</channel>
+  <channel site="pluto.tv" site_id="5e6f38792075160007d85823" lang="en" xmltv_id="HellsKitchen.us@UK">Hell's Kitchen</channel>
+  <channel site="pluto.tv" site_id="5c5c2e9d8002db3c3e0b1c72" lang="en" xmltv_id="HomesUnderHammer.us@UK">Homes Under the Hammer</channel>
+  <channel site="pluto.tv" site_id="5e8db96bccae160007c71eec" lang="en" xmltv_id="Andromeda.us@UK">Andromeda</channel>
+  <channel site="pluto.tv" site_id="656df599c0fc8800089c75ab" lang="en" xmltv_id="Avatar.us@UK">Avatar</channel>
+  <channel site="pluto.tv" site_id="5f6b54b9e67cf60007d4cef1" lang="en" xmltv_id="DuckDynasty.us@UK">Duck Dynasty</channel>
+  <channel site="pluto.tv" site_id="5ca1da6c593a5d78f0e7edce" lang="en" xmltv_id="EuronewsEnglish.fr@SD">Euronews</channel>
+  <channel site="pluto.tv" site_id="63d91d2560bc8f0008a225e4" lang="en" xmltv_id="FIFAPlus.uk@English">FIFA+</channel>
+  <!-- Present in the installed UK Android TV guide on 2026-09-05. -->
+  <channel site="pluto.tv" site_id="656df2849d5ac400083be647" lang="en" xmltv_id="5TruckingHell.uk">5 Trucking Hell</channel>
+  <channel site="pluto.tv" site_id="5f6b535a278bfe000799484a" lang="en" xmltv_id="DogtheBountyHunter.us@UK">Dog The Bounty Hunter</channel>
+  <channel site="pluto.tv" site_id="660be37e7bcd860008793a6a" lang="en" xmltv_id="BondiRescue.uk">Bondi Rescue</channel>
+  <channel site="pluto.tv" site_id="63693fa2bfa0690007ebc880" lang="en" xmltv_id="WickedTuna.uk">Wicked Tuna</channel>
+  <channel site="pluto.tv" site_id="63c1384e829c850007922ca4" lang="en" xmltv_id="5EmergencyRescue.uk">5 Emergency Rescue</channel>
+  <channel site="pluto.tv" site_id="5ad8d3a31b95267e225e4e09" lang="en" xmltv_id="PlutoTVMovies.de@UK">Pluto TV Movies</channel>
+  <channel site="pluto.tv" site_id="5dbfeb961b411c00090b52b3" lang="en" xmltv_id="PlutoTVAction.de@UK">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="5c363c2411c5ca053f198f97" lang="en" xmltv_id="PlutoTVComedyMovies.de@UK">Pluto TV Comedy Movies</channel>
+  <channel site="pluto.tv" site_id="65b14aae0cb1a100087a216e" lang="en" xmltv_id="DAZNRingside.uk">DAZN Ringside</channel>
+  <channel site="pluto.tv" site_id="66f137cb483d460008ece053" lang="en" xmltv_id="RugbyPassTV.uk@SD">Rugby Pass TV</channel>
+  <channel site="pluto.tv" site_id="6627621d56fc840008e47c90" lang="en" xmltv_id="TennisChannel.us@SD">Tennis Channel</channel>
+  <channel site="pluto.tv" site_id="5d767790d0438aceb41d03ae" lang="en" xmltv_id="PlutoTVCrime.de@UK">Pluto TV Crime</channel>
+  <channel site="pluto.tv" site_id="65a6a7a00c7ff50008cba07b" lang="en" xmltv_id="PlutoTVCrimeDrama.de@UK">Pluto TV Crime Drama</channel>
+  <channel site="pluto.tv" site_id="62f53dc6ee9a0400071dc22b" lang="en" xmltv_id="PlutoTVSitcoms.de@UK">Pluto TV Sitcoms</channel>
+  <channel site="pluto.tv" site_id="64c0d6f34096290008132d6b" lang="en" xmltv_id="ULaughs.uk">U&amp;Laughs</channel>
+  <channel site="pluto.tv" site_id="5ad8d54be738977e2c310940" lang="en" xmltv_id="PlutoTVKids.de@UK">Pluto TV Kids</channel>
+  <channel site="pluto.tv" site_id="6683cd71a1d7ad000866ec6a" lang="en" xmltv_id="PlutoTVPokemon.us@UK">Pokémon</channel>
+</channels>

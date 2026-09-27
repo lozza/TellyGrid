@@ -81,4 +81,9 @@
   <channel site="sky.com" site_id="GB#4026" lang="en" xmltv_id="sky-sports-golf">Sky Sports Golf HD</channel>
   <channel site="sky.com" site_id="GB#4024" lang="en" xmltv_id="sky-sports-action">Sky Sports Action HD</channel>
   <channel site="sky.com" site_id="GB#4036" lang="en" xmltv_id="sky-sports-news">Sky Sports News HD</channel>
+
+  <channel site="sky.com" site_id="GB#3625" lang="en" xmltv_id="tnt-sports-1">TNT Sports 1 HD</channel>
+  <channel site="sky.com" site_id="GB#3627" lang="en" xmltv_id="tnt-sports-2">TNT Sports 2 HD</channel>
+  <channel site="sky.com" site_id="GB#3629" lang="en" xmltv_id="tnt-sports-3">TNT Sports 3 HD</channel>
+  <channel site="sky.com" site_id="GB#4040" lang="en" xmltv_id="tnt-sports-4">TNT Sports 4 HD</channel>
 </channels>

@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">TellyGrid</string>
+    <string name="discovery_accessibility_label">TellyGrid discovery+ channel control</string>
+    <string name="discovery_accessibility_description">Optionally taps the discovery+ Browse screen after you select a discovery+ channel in TellyGrid. Restricted to discovery+; it does not read or record screen content.</string>
+    <string name="home_override_accessibility_label">TellyGrid Home button override</string>
+    <string name="home_override_accessibility_description">Optionally opens TellyGrid when the Android TV Home button is pressed. It does not read or record screen content.</string>
 </resources>

@@ -39,8 +39,10 @@ class SampleGuideRepository(private val clock: Clock = Clock.systemUTC()) {
             name = name,
             providerLabel = providerLabel,
             accentArgb = accent,
+            logoUri = ChannelLogoCatalog.logoFor(id),
             playback = PlaybackTarget.ProviderHandoff(
                 provider = provider,
+                channelId = id,
                 terrestrialLcn = number.takeIf { it in 1..5 },
             ),
             programmes = listOf(

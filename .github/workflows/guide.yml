@@ -50,9 +50,18 @@ jobs:
           cp pages/index.html "$RUNNER_TEMP/tellygrid-pages/index.html"
           npm --prefix "$RUNNER_TEMP/iptv-org-epg" run grab -- \
             --channels="$GITHUB_WORKSPACE/epg/sky-uk.channels.xml" \
-            --output="$RUNNER_TEMP/tellygrid-pages/guide.xml" \
+            --output="$RUNNER_TEMP/tellygrid-pages/sky-guide.xml" \
             --days=2 \
             --maxConnections=4
+          npm --prefix "$RUNNER_TEMP/iptv-org-epg" run grab -- \
+            --channels="$GITHUB_WORKSPACE/epg/pluto-uk.channels.xml" \
+            --output="$RUNNER_TEMP/tellygrid-pages/pluto-guide.xml" \
+            --days=2 \
+            --maxConnections=4
+          node "$GITHUB_WORKSPACE/scripts/merge-xmltv.mjs" \
+            "$RUNNER_TEMP/tellygrid-pages/guide.xml" \
+            "$RUNNER_TEMP/tellygrid-pages/sky-guide.xml" \
+            "$RUNNER_TEMP/tellygrid-pages/pluto-guide.xml"
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5

@@ -1,5 +1,7 @@
 # TellyGrid
 
+For the current development state, verified TV results and next tasks, see [the 27 September 2026 handoff](docs/HANDOFF-2026-09-27.md).
+
 **One live TV guide. Every app.**
 
 [![Android APK](https://github.com/lozza/TellyGrid/actions/workflows/android.yml/badge.svg)](https://github.com/lozza/TellyGrid/actions/workflows/android.yml)
@@ -17,10 +19,11 @@ See [all releases](https://github.com/lozza/TellyGrid/releases) for release note
 newer builds.
 
 TellyGrid is a source-available guide-and-launcher for Android TV/Google TV. It presents BBC, ITV,
-Channel 4, 5, NOW, and discovery+ channels in one remote-friendly screen. Selecting
-a supported Freeview channel plays through the television tuner inside TellyGrid,
-so one Back press returns to the guide; other channels hand off to the provider's
-installed app. The same
+Channel 4, 5, NOW, and discovery+ channels in one remote-friendly screen. On devices
+with compatible retail BBC iPlayer or ITVX apps, BBC One-Four and ITV1-4 are handed
+their provider-owned live-channel links. Manufacturer Freeview wrappers that cannot
+handle those links use the exact local tuner instead, so one Back press returns to
+the guide. Other channels hand off to the provider's installed app. The same
 architecture can
 play a stream in-app only when the product owner has explicit distribution rights,
 an authorised manifest, and any required DRM licence integration.
@@ -28,29 +31,75 @@ an authorised manifest, and any required DRM licence integration.
 The APK now contains a two-day Sky UK XMLTV snapshot generated with the selected
 `iptv-org/epg` tool. If that snapshot has expired and no hosted feed is configured,
 the app clearly falls back to illustrative data. It contains no broadcaster stream
-URLs, credentials, tokens, or copied logos.
+URLs, credentials, or tokens. Channel identity artwork is resized and bundled with
+the APK, so rows do not depend on third-party image hosts at runtime; every logo also
+has a text fallback.
 
 The app refreshes from `https://lozza.github.io/TellyGrid/guide.xml`. GitHub Actions
 regenerates and publishes that guide twice daily; the bundled copy keeps the app
 usable during a temporary GitHub or source outage.
 
-Alpha 4 expands the catalogue to 78 channels. Its Freeview section includes the main
+Alpha 6 adds device-aware BBC and ITV routing. A selected or detected retail iPlayer/
+ITVX app gets first refusal on the provider's live-channel link; Philips Freeview
+wrappers retain reliable exact-tuner playback. The catalogue contains 82 channels.
+Its Freeview section includes the main
 BBC, ITV, Channel 4, 5, U and discovery-owned terrestrial services. The NOW rows use
 device-verified channel links for Entertainment, Kids, Cinema and Sports, including
 the current Sky One lineup. The discovery+ catalogue now includes all 12 live
 entertainment channels listed by discovery+ UK; HGTV remains visible with a listings-
 unavailable placeholder because it is not present in the Sky source.
 
+The sports section also includes TNT Sports 1–4 using Sky listings and an HBO Max
+handoff. HBO Max officially lists those four UK linear channels, but TellyGrid has
+not verified channel-specific HBO Max links or playback with an active subscription;
+selecting one therefore opens the installed HBO Max TV app.
+
+### Optional discovery+ channel control
+
+The discovery+ Android TV app does not publish stable per-channel deep links. TellyGrid
+includes an experimental, optional Accessibility Service that can open discovery+
+Browse and tap the chosen live-channel tile only on devices with a touchscreen input
+source. The first-run disclosure explains the behaviour and shows the manual TV-settings
+path; the user must enable the service themselves. It is off by default and can be
+disabled at any time.
+
+Typical Android TV path: **Settings → Device Preferences (or Android settings) →
+Accessibility → TellyGrid discovery+ channel control → Enable**. On Philips TVs, start
+at **Settings → Android settings → Device Preferences → Accessibility**. Menu names can
+vary by manufacturer.
+
+Standard non-touch Android TVs cannot use this route: Android only dispatches accessibility
+gestures to a touch input pipeline, discovery+ 21.10.0.73 exposes no actionable accessibility
+nodes, and accessibility services cannot inject D-pad keys. TellyGrid detects the missing
+`android.hardware.touchscreen` feature, skips automation, and opens discovery+ normally.
+
+The service is package-restricted to `com.discovery.dplay`, requests gesture capability
+but not accessibility-node retrieval, and neither reads nor records screen content. It
+runs a short gesture sequence only after the user selects a discovery+ channel in
+TellyGrid. The coordinates were verified with discovery+ 21.10.0.73 on a 1920×1080
+Android 11 TV and are inherently more fragile than NOW's supported channel links.
+Discovery, TLC, Quest, ID, Quest Red, Animal Planet, Food Network, DMAX, Discovery
+Science, Turbo and Discovery History are mapped. If a channel is absent from the
+installed app's live row, TellyGrid stops on Browse for manual selection.
+
+discovery+ does accept exact web links for individual programmes. TellyGrid will use
+one when the XMLTV feed supplies a verified
+`https://play.discoveryplus.com/video/watch/{show-uuid}/{video-uuid}` URL in either a
+`<url>` element or `<episode-num system="discoveryplus">`. The current Sky guide does
+not supply those discovery identifiers, so title-only rows continue to use the live
+channel/app fallback; TellyGrid does not guess an episode from its title.
+
 ## Feasibility
 
 | Provider/content | Unified guide | MVP playback | Direct playback in this app |
 |---|---:|---|---|
-| BBC One/Two/etc. | Yes, with licensed EPG metadata | Open BBC iPlayer | Only with a BBC distribution agreement and authorised stream/DRM integration |
-| ITV1/2/3/4 | Yes | Open ITVX | Only with an ITV agreement |
+| BBC One/Two/Three/Four | Yes, with licensed EPG metadata | Retail iPlayer live link where supported; exact tuner for incompatible OEM wrappers | Only with a BBC distribution agreement and authorised stream/DRM integration |
+| ITV1/2/3/4 | Yes | Retail ITVX live link where supported; exact tuner for incompatible OEM wrappers | Only with an ITV agreement |
 | Channel 4/E4/More4 | Yes | Open Channel 4 | Only with a Channel 4 agreement |
 | 5/5STAR/5USA/etc. | Yes | Open 5 | Only with a Channel 5 agreement |
 | NOW/Sky channels | Yes, respecting membership | Open NOW | Only through a commercial Sky/NOW partner integration |
 | discovery+ channels | Yes, respecting plan/territory | Open discovery+ | Only through a Warner Bros. Discovery partner integration |
+| TNT Sports 1–4 | Yes, respecting plan/territory | Open HBO Max | Only through a Warner Bros. Discovery partner integration |
 | Your own/licensed FAST channels | Yes | In-app Media3 player | Yes: HLS/DASH and optional Widevine fields are scaffolded |
 
 Official sources confirm that these services offer live content and Android/Android
@@ -62,28 +111,36 @@ generic Android TV boxes are supported.
 TellyGrid resolves its configured terrestrial channels to the local tuner on
 compatible Philips Freeview Play televisions and renders that tuner with Android's
 `TvView` inside TellyGrid. Exact tuning and one-press Back were verified on a 2021/22
-Philips Android 11 TV. It also discovers TV-launchable apps and handlers for
-official broadcaster URLs,
-including manufacturer-supplied Freeview Play variants. `APP SETUP` lets the user
-override automatic matching for each provider. A channel URL is sent only to the
+Philips Android 11 TV. That television exposes BBC and ITV as manufacturer Freeview
+wrappers rather than the retail apps; the wrappers do not accept the normal provider
+live URLs. Their private Freeview handoff was also tested with the correct TV channel
+identifier, but the firmware rejected it with `FVP-05-017`, so TellyGrid does not ship
+that brittle route.
+
+On other devices, TellyGrid discovers TV-launchable retail apps and handlers for
+official broadcaster URLs. `APP SETUP` lets the user override automatic matching for
+each provider, and an explicit user selection wins. A channel URL is sent only to the
 chosen installed app when Android reports that app can handle it; app-home launch is
 the fallback. Exact tuning on other manufacturers remains device dependent and needs
 physical-TV testing.
 
 ## UX blueprint
 
-The scaffold implements the first useful slice:
+The app uses a compact two-hour broadcast timeline rather than a stacked card list:
 
 ![Guide UX wireframe](docs/guide-wireframe.svg)
 
-- A ten-foot `LIVE GUIDE` screen with channel number/name, provider or membership
-  badge, current programme, next programme and a clear destination label.
-- Up/down moves between channels. Select opens the programme. Focus has a high-
-  contrast border and does not depend on colour alone.
-- The launch order is local Freeview tuner, supported channel link, selected TV app,
-  then automatically
-  detected TV app. It never redirects a Freeview Play TV to an incompatible retail
-  Play Store build. Back from the in-app Freeview player returns to the guide.
+- A fixed channel rail combines logical channel numbers, provider labels and channel
+  logos; programme widths and positions reflect their real start and end times.
+- A live-time rule crosses every row. The selected programme uses a warm high-contrast
+  focus surface, while its title, episode, synopsis and Sky artwork appear above.
+- Up/down moves between channels and left/right moves across programmes. Select opens
+  the focused programme or live channel.
+- The launch order is an exact programme link, a selected or detected retail
+  broadcaster's live-channel link, the exact local tuner for an incompatible OEM
+  Freeview wrapper, then app-home fallback. It never redirects a Freeview Play TV to
+  an incompatible retail Play Store build. Back from the in-app tuner returns to the
+  guide.
 - A licensed stream opens a full-screen Media3 player; Back returns to the guide.
 
 The production version should add horizontal time navigation in 30-minute steps,
@@ -124,6 +181,9 @@ Important boundaries:
 - Treat direct playback as a server-authorised capability. Media3 supports Widevine,
   but technical DRM support does not grant content rights.
 - Authentication stays inside provider apps. Do not collect provider credentials.
+- Accessibility control must remain optional, narrowly package-scoped and fully
+  disclosed. Do not enable it programmatically or expand it into general screen
+  inspection.
 
 ## Project map
 
@@ -134,6 +194,7 @@ Important boundaries:
 - `playback/NativeTvChannelLauncher.kt`: local Freeview LCN and tuner-input resolution.
 - `ui/NativeTvPlayerScreen.kt`: in-app Android `TvView`; Back resets it and restores the guide.
 - `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
+- `playback/DiscoveryChannelAccessibilityService.kt`: opt-in, discovery+-only gesture handoff.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.
@@ -150,14 +211,16 @@ Important boundaries:
    may be unavailable on an emulator because of territory/device certification.
 5. Run the unit test before changing provider playback routes.
 
-The Gradle wrapper is included. On 27 August 2026, the project successfully ran the
-unit tests and produced a debug APK using the Android Studio installation and SDK on
-this computer. The ready-to-install build is at `dist/unified-guide-debug.apk`.
+The Gradle wrapper is included. Run `./gradlew test assembleDebug` with JDK 17
+and Android SDK 35. The resulting APK is at
+`app/build/outputs/apk/debug/app-debug.apk`; the Android APK GitHub Actions
+workflow also uploads a fresh debug build after a push to `main`.
 
 The app has also been installed and checked on an API 34 Android TV emulator at
-1920×1080, including D-pad focus navigation. On 28 August 2026, direct BBC One
-tuning and one-press Back were verified end-to-end from TellyGrid on a Philips Android
-11 Freeview Play TV. NOW's channel-specific route was also verified with Sky Atlantic.
+1920×1080, including D-pad focus navigation. Direct BBC One tuning and one-press Back
+were reverified end-to-end on 1 September 2026 on a Philips Android 11 Freeview Play
+TV; the tuner reported `BBC ONE Lon HD`. NOW's channel-specific route was also verified
+with Sky Atlantic.
 
 ## Sky UK guide updates
 
@@ -186,6 +249,15 @@ For automatic daily data, host the generated `guide.xml` over HTTPS and build wi
 At startup the app tries that URL, caches a successful response, then falls back to
 the last saved or bundled guide. Run the grabber on a server once or twice daily;
 do not run the Sky scraper on every television.
+
+To refresh the locally bundled channel artwork after changing its source map, run:
+
+```powershell
+.\scripts\update-channel-logos.ps1 -Force
+```
+
+The script validates each image, resizes it to a consistent transparent canvas and
+writes the runtime assets under `app/src/main/assets/channel-logos`.
 
 The EPG project's Unlicense covers its source code, not necessarily Sky's underlying
 programme metadata, images or trademarks. Confirm permission and applicable terms
@@ -248,6 +320,8 @@ before distributing an app or republishing the generated listings commercially.
 - [NOW Entertainment live-channel lineup](https://www.nowtv.com/gb/help/article/entertainment-membership)
 - [Android `TvView`](https://developer.android.com/reference/android/media/tv/TvView)
 - [discovery+ UK live-channel lineup](https://support.discoveryplus.com/gb-en/Answer/Detail/000004301)
+- [HBO Max UK TNT Sports lineup](https://help.hbomax.com/gb/Answer/Detail/000002560)
+- [HBO Max Android TV listing](https://play.google.com/store/apps/details?id=com.wbd.stream)
 - [BBC iPlayer live-TV listing](https://play.google.com/store/apps/details?id=bbc.iplayer.android)
 - [Channel 4 live-TV listing](https://play.google.com/store/apps/details?id=com.channel4.ondemand)
 - [5 live-TV listing](https://play.google.com/store/apps/details?id=com.mobileiq.demand5)

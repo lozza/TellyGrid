@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.lozza.tellygrid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.4.0-alpha.4"
+        versionCode = 6
+        versionName = "0.6.0-alpha.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val epgUrl = providers.gradleProperty("EPG_URL")
@@ -50,6 +50,9 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.10.1")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.foundation:foundation")

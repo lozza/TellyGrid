@@ -31,12 +31,16 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.lozza.tellygrid.data.ProviderApp
 import io.github.lozza.tellygrid.data.ProviderId
+import io.github.lozza.tellygrid.data.GuideChannel
+import io.github.lozza.tellygrid.data.GuideDensity
+import io.github.lozza.tellygrid.data.GuideSettings
 import io.github.lozza.tellygrid.playback.InstalledTvApp
 
 @Composable
@@ -45,37 +49,124 @@ fun ProviderSetupScreen(
     installedApps: List<InstalledTvApp>,
     suggestedApps: Map<ProviderId, List<InstalledTvApp>>,
     selections: Map<ProviderId, String>,
+    channels: List<GuideChannel>,
+    guideSettings: GuideSettings,
+    discoveryAccessibilitySupported: Boolean,
+    discoveryAccessibilityEnabled: Boolean,
     onSelect: (ProviderId, String?) -> Unit,
+    onProviderEnabledChanged: (ProviderId) -> Unit,
+    onGuideDensityChanged: (GuideDensity) -> Unit,
+    onToggleHidden: (String) -> Unit,
+    onOrderChanged: (List<String>) -> Unit,
+    onResetOrder: () -> Unit,
+    onResetChannelManagement: () -> Unit,
+    onOpenAndroidSettings: () -> Boolean,
     onBack: () -> Unit,
 ) {
     var editing by remember { mutableStateOf<ProviderApp?>(null) }
-    BackHandler {
+    var showingAccessibilityInstructions by remember { mutableStateOf(false) }
+    var showingAccessibilityUnsupported by remember { mutableStateOf(false) }
+    var showingGuidePreferences by remember { mutableStateOf(false) }
+    var androidSettingsError by remember { mutableStateOf(false) }
+    BackHandler(enabled = !showingAccessibilityInstructions && !showingAccessibilityUnsupported) {
         if (editing != null) editing = null else onBack()
+    }
+
+    if (showingAccessibilityUnsupported) {
+        AccessibilityUnsupportedScreen(onBack = { showingAccessibilityUnsupported = false })
+        return
+    }
+
+    if (showingGuidePreferences) {
+        GuidePreferencesScreen(
+            channels = channels,
+            settings = guideSettings,
+            onDensityChanged = onGuideDensityChanged,
+            onToggleHidden = onToggleHidden,
+            onOrderChanged = onOrderChanged,
+            onResetOrder = onResetOrder,
+            onResetChannelManagement = onResetChannelManagement,
+            onBack = { showingGuidePreferences = false },
+        )
+        return
+    }
+
+    if (showingAccessibilityInstructions) {
+        AccessibilityDisclosureScreen(
+            onContinue = { showingAccessibilityInstructions = false },
+            onNotNow = { showingAccessibilityInstructions = false },
+        )
+        return
     }
 
     Column(
         Modifier.fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 36.dp, vertical = 26.dp),
+            .background(Brush.verticalGradient(listOf(Color(0xFF21162E), Color(0xFF4B3159), Color(0xFF21162E))))
+            .padding(horizontal = 50.dp, vertical = 28.dp),
     ) {
-        Text("TELLYGRID", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Text(
-            if (editing == null) "App setup" else "Choose app for ${editing!!.displayName}",
+            if (editing == null) "SETTINGS" else "${editing!!.displayName.uppercase()} APP",
             color = Color.White,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = 30.sp,
+            fontWeight = FontWeight.Medium,
+            fontSize = 25.sp,
+            letterSpacing = 1.sp,
         )
         Text(
             if (editing == null) "Match each service to the app supplied with this TV. Press Back when finished."
             else "Automatic is recommended. Choose a specific app if your Freeview Play version is not detected.",
-            color = Color(0xFF9AA6B6),
-            fontSize = 14.sp,
+            color = Color(0xFFCDBFDB),
+            fontSize = 13.sp,
         )
         Spacer(Modifier.height(22.dp))
 
+        if (androidSettingsError) {
+            Text(
+                "Android TV settings could not be opened on this device.",
+                color = Color(0xFFFFB4B4),
+                fontSize = 14.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+
         if (editing == null) {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                itemsIndexed(providers, key = { _, provider -> provider.id }) { index, provider ->
+                item {
+                    SetupRow(
+                        title = "Android TV settings",
+                        detail = "Open the TV's system settings",
+                        onClick = { androidSettingsError = !onOpenAndroidSettings() },
+                        requestInitialFocus = true,
+                    )
+                }
+                item {
+                    SetupRow(
+                        title = "Guide preferences",
+                        detail = "Density, hidden channels and reset controls",
+                        onClick = { showingGuidePreferences = true },
+                        requestInitialFocus = false,
+                    )
+                }
+                item {
+                    SetupRow(
+                        title = "Discovery+ direct channels",
+                        detail = if (!discoveryAccessibilitySupported) {
+                            "Unavailable — this TV blocks accessibility touch gestures"
+                        } else if (discoveryAccessibilityEnabled) {
+                            "Accessibility control enabled — select to review the manual settings path"
+                        } else {
+                            "Optional — select to see the manual settings path"
+                        },
+                        onClick = {
+                            if (discoveryAccessibilitySupported) {
+                                showingAccessibilityInstructions = true
+                            } else {
+                                showingAccessibilityUnsupported = true
+                            }
+                        },
+                        requestInitialFocus = false,
+                    )
+                }
+                itemsIndexed(providers, key = { _, provider -> provider.id }) { _, provider ->
                     val selectedPackage = selections[provider.id]
                     val selectedLabel = installedApps.firstOrNull { it.packageName == selectedPackage }?.label
                     val automatic = suggestedApps[provider.id]?.firstOrNull()?.label
@@ -85,13 +176,25 @@ fun ProviderSetupScreen(
                             ?: automatic?.let { "$it (automatic)" }
                             ?: "Not detected — choose the preinstalled app",
                         onClick = { editing = provider },
-                        requestInitialFocus = index == 0,
+                        requestInitialFocus = false,
                     )
                 }
             }
         } else {
             val provider = editing!!
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                item {
+                    val disabled = provider.id in guideSettings.disabledProviderIds
+                    SetupRow(
+                        title = if (disabled) "Enable ${provider.displayName} in guide" else "Disable ${provider.displayName} in guide",
+                        detail = if (disabled) "Hidden rows are kept and can be restored later" else "Hide this provider's rows without deleting app choices",
+                        onClick = {
+                            onProviderEnabledChanged(provider.id)
+                            editing = null
+                        },
+                        requestInitialFocus = true,
+                    )
+                }
                 item {
                     SetupRow(
                         title = "Automatic (recommended)",
@@ -100,7 +203,7 @@ fun ProviderSetupScreen(
                             onSelect(provider.id, null)
                             editing = null
                         },
-                        requestInitialFocus = true,
+                        requestInitialFocus = false,
                     )
                 }
                 items(installedApps, key = { it.packageName }) { app ->
@@ -131,15 +234,15 @@ private fun SetupRow(
         LaunchedEffect(Unit) { focusRequester.requestFocus() }
     }
     val background by animateColorAsState(
-        if (focused) Color(0xFF263246) else MaterialTheme.colorScheme.surface,
+        if (focused) Color(0xFF8D294D) else Color(0xFF35263F),
         label = "setup row background",
     )
     Row(
         Modifier.fillMaxWidth()
-            .height(72.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .height(64.dp)
+            .clip(RoundedCornerShape(4.dp))
             .background(background)
-            .then(if (focused) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)) else Modifier)
+            .then(if (focused) Modifier.border(2.dp, Color(0xFFFF365B), RoundedCornerShape(4.dp)) else Modifier)
             .focusRequester(focusRequester)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)
@@ -149,8 +252,8 @@ private fun SetupRow(
     ) {
         Column {
             Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(detail, color = Color(0xFF9AA6B6), fontSize = 12.sp)
+            Text(detail, color = Color(0xFFCDBFDB), fontSize = 12.sp)
         }
-        Text("SELECT", color = if (focused) MaterialTheme.colorScheme.primary else Color(0xFF9AA6B6), fontSize = 11.sp)
+        Text("SELECT", color = if (focused) Color.White else Color(0xFFCDBFDB), fontSize = 11.sp)
     }
 }
