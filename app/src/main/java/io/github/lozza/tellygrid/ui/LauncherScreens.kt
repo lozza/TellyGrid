@@ -50,6 +50,7 @@ import io.github.lozza.tellygrid.data.Programme
 import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.ProviderRegistry
 import io.github.lozza.tellygrid.data.TvPublishedProgramme
+import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.TvPublishedRecommendations
 import io.github.lozza.tellygrid.playback.InstalledTvApp
 import java.time.Instant
@@ -86,6 +87,8 @@ fun LauncherHomeScreen(
     onWatchProgramme: (GuideChannel, Programme) -> Unit,
     onLaunchApp: (InstalledTvApp) -> Unit,
     onOpenPublishedProgramme: (TvPublishedProgramme) -> Unit,
+    bbcIplayerEpisodes: List<BbcIplayerEpisode>,
+    onOpenBbcIplayerEpisode: (BbcIplayerEpisode) -> Unit,
     onOpenApps: () -> Unit,
     onOpenSettings: () -> Unit,
     onSetDefaultLauncher: () -> Unit,
@@ -182,6 +185,25 @@ fun LauncherHomeScreen(
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     items(publishedWatchNext) { recommendation ->
                         PublishedRecommendationCard(recommendation, installedByPackage.getValue(recommendation.packageName), onOpenPublishedProgramme)
+                    }
+                }
+            }
+        }
+        // BBC publishes no Android TV rows, so its shelf comes from BBC's own catalogue.
+        val bbcApp = ProviderRegistry.bbc.packageCandidates.firstNotNullOfOrNull(installedByPackage::get)
+        if (bbcApp != null && bbcIplayerEpisodes.isNotEmpty()) item {
+            Column(Modifier.padding(horizontal = 50.dp)) {
+                SectionHeading("BBC IPLAYER", "Most popular on iPlayer")
+                Spacer(Modifier.height(12.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    items(bbcIplayerEpisodes, key = { it.id }) { episode ->
+                        RecommendationCard(
+                            title = episode.title,
+                            caption = episode.subtitle,
+                            artworkUri = episode.artworkUri,
+                            appLabel = "BBC iPlayer",
+                            onClick = { onOpenBbcIplayerEpisode(episode) },
+                        )
                     }
                 }
             }
@@ -294,13 +316,30 @@ private fun PublishedRecommendationCard(
     app: InstalledTvApp,
     onOpenProgramme: (TvPublishedProgramme) -> Unit,
 ) {
+    RecommendationCard(
+        title = recommendation.title,
+        caption = null,
+        artworkUri = recommendation.artworkUri,
+        appLabel = app.label,
+        onClick = { onOpenProgramme(recommendation) },
+    )
+}
+
+@Composable
+private fun RecommendationCard(
+    title: String,
+    caption: String?,
+    artworkUri: String?,
+    appLabel: String,
+    onClick: () -> Unit,
+) {
     var focused by remember { mutableStateOf(false) }
-    val image by rememberRemoteImage(recommendation.artworkUri, maxDimension = 480)
+    val image by rememberRemoteImage(artworkUri, maxDimension = 480)
     Column(
         modifier = Modifier
             .width(220.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clickable { onOpenProgramme(recommendation) }
+            .clickable(onClick = onClick)
             .focusable(),
     ) {
         Box(
@@ -310,10 +349,13 @@ private fun PublishedRecommendationCard(
                 .border(3.dp, if (focused) LauncherFocus else Color.Transparent, RoundedCornerShape(6.dp)),
         ) {
             if (image != null) Image(image!!, null, Modifier.fillMaxSize(), alignment = Alignment.TopCenter, contentScale = ContentScale.Crop)
-            else Text(recommendation.title, color = LauncherPaper, fontSize = 22.sp, lineHeight = 24.sp, fontWeight = FontWeight.Black, maxLines = 2, modifier = Modifier.align(Alignment.CenterStart).padding(16.dp))
-            Text(app.label, color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).background(LauncherInk.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 4.dp))
+            else Text(title, color = LauncherPaper, fontSize = 22.sp, lineHeight = 24.sp, fontWeight = FontWeight.Black, maxLines = 2, modifier = Modifier.align(Alignment.CenterStart).padding(16.dp))
+            Text(appLabel, color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).background(LauncherInk.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 4.dp))
         }
-        Text(recommendation.title, color = LauncherPaper, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+        Text(title, color = LauncherPaper, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
+        if (caption != null) {
+            Text(caption, color = LauncherMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
     }
 }
 

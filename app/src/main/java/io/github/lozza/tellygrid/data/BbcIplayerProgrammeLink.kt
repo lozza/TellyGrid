@@ -22,6 +22,24 @@ object BbcIplayerProgrammeLink {
         RegexOption.IGNORE_CASE,
     )
 
+    private val episodeId = Regex("^[a-z0-9]{8,15}$")
+
+    /**
+     * Freeview Play AIT launch for a BBC-issued episode id, in the same format as
+     * the captured *The Split Up* recommendation. The id must come from BBC's own
+     * catalogue ([BbcIplayerCatalogueRepository]), never from a guide title.
+     */
+    fun aitUrlForEpisode(id: String): String? =
+        id.takeIf(episodeId::matches)?.let {
+            "https://www.live.bbctvapps.co.uk/tap/iplayer/ait/launch/iplayer.aitx" +
+                "?deeplink=tv/playback/urn:bbc:iplayer:episode:$it" +
+                "&campaign=catalogue&medium=referral&partner=net.freeviewplay"
+        }
+
+    /** Public episode page, for retail iPlayer builds that claim bbc.co.uk links. */
+    fun webUrlForEpisode(id: String): String? =
+        id.takeIf(episodeId::matches)?.let { "https://www.bbc.co.uk/iplayer/episode/$it" }
+
     fun verifiedOrNull(uri: String?): String? =
         uri?.trim()?.takeIf(::isVerified)
 

@@ -39,6 +39,8 @@ fun UnifiedGuideApp(
     onLaunchInstalledApp: (InstalledTvApp) -> LaunchResult,
     onLaunchPublishedProgramme: (io.github.lozza.tellygrid.data.TvPublishedProgramme) -> LaunchResult,
     publishedRecommendations: io.github.lozza.tellygrid.data.TvPublishedRecommendations,
+    bbcIplayerEpisodes: List<io.github.lozza.tellygrid.data.BbcIplayerEpisode>,
+    onLaunchBbcIplayerEpisode: (io.github.lozza.tellygrid.data.BbcIplayerEpisode) -> LaunchResult,
     tvListingsAllowed: Boolean,
     onRequestTvListingsPermission: () -> Unit,
     onOpenHomeSettings: () -> Unit,
@@ -234,6 +236,13 @@ fun UnifiedGuideApp(
                     },
                     onOpenPublishedProgramme = { programme ->
                         status = when (val result = onLaunchPublishedProgramme(programme)) {
+                            is LaunchResult.Opened -> "Opening ${result.destination}"
+                            is LaunchResult.Failed -> result.message
+                        }
+                    },
+                    bbcIplayerEpisodes = bbcIplayerEpisodes,
+                    onOpenBbcIplayerEpisode = { episode ->
+                        status = when (val result = onLaunchBbcIplayerEpisode(episode)) {
                             is LaunchResult.Opened -> "Opening ${result.destination}"
                             is LaunchResult.Failed -> result.message
                         }

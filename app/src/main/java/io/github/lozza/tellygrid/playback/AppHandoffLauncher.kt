@@ -8,7 +8,9 @@ import android.net.Uri
 import io.github.lozza.tellygrid.data.PlaybackTarget
 import io.github.lozza.tellygrid.data.ProviderProgrammeIntent
 import io.github.lozza.tellygrid.data.ProviderId
+import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.BbcIplayerProgrammeLink
+import io.github.lozza.tellygrid.data.ProviderRegistry
 import io.github.lozza.tellygrid.data.PrimeVideoProgrammeLink
 import io.github.lozza.tellygrid.data.TvPublishedProgramme
 
@@ -144,6 +146,48 @@ class AppHandoffLauncher(private val context: Context) {
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         return if (tryStart(intent)) LaunchResult.Opened(app.label) else LaunchResult.Failed("Could not open ${app.label}")
     }
+
+    /**
+     * Open a BBC iPlayer catalogue episode. Freeview Play TVs get the verified AIT
+     * request; retail iPlayer gets the public episode link if it claims it. If
+     * neither route is available the iPlayer app opens at its home screen.
+     */
+    fun launch(episode: BbcIplayerEpisode, selectedPackage: String? = null): LaunchResult {
+        val provider = ProviderRegistry.bbc
+        val installed = buildList {
+            selectedPackage?.let(::add)
+            addAll(provider.packageCandidates)
+        }.distinct().filter(::isInstalled)
+
+        BbcIplayerProgrammeLink.intentOrNull(BbcIplayerProgrammeLink.aitUrlForEpisode(episode.id))
+            ?.takeIf { it.matchesSelectedPackage(selectedPackage) && it.providerPackageName in installed }
+            ?.let { if (tryStart(it.toIntent())) return LaunchResult.Opened(episode.title) }
+
+        BbcIplayerProgrammeLink.webUrlForEpisode(episode.id)?.let { uri ->
+            installed.filter { it != BbcIplayerProgrammeLink.PROVIDER_PACKAGE_NAME }.forEach { packageName ->
+                if (!discovery.canHandle(packageName, uri)) return@forEach
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
+                    setPackage(packageName)
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened(episode.title)
+            }
+        }
+
+        installed.forEach { packageName ->
+            val intent = context.packageManager.getLeanbackLaunchIntentForPackage(packageName)
+                ?: context.packageManager.getLaunchIntentForPackage(packageName)
+                ?: return@forEach
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} (this TV has no direct episode link)")
+        }
+        return LaunchResult.Failed("BBC iPlayer is not installed on this TV")
+    }
+
+    private fun isInstalled(packageName: String): Boolean = runCatching {
+        context.packageManager.getPackageInfo(packageName, 0)
+    }.isSuccess
 
     /** Launch the provider-issued intent carried by an Android TV Home card. */
     fun launch(programme: TvPublishedProgramme): LaunchResult {
