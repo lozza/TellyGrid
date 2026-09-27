@@ -28,6 +28,8 @@ This is an early test version, so far tested on a Philips Android 11 Freeview Pl
 
 TellyGrid only hands off to apps you already have. It contains no streams, accounts or tokens.
 
+### Make sure to into Accessibility settings to force the Launcher as the main app. It will stop the Android TV default from loading. Home and Back buttons will then work as expected.
+
 ## What's new in alpha 7
 
 A new rotating Home banner, Watch next that stays up to date, faster artwork, direct links for Pluto TV and 12 discovery+ channels, a BBC iPlayer row, a new font and logo, and many remote-control fixes. Full notes are on the [release page](https://github.com/lozza/TellyGrid/releases/tag/v0.7.0-alpha.7).
