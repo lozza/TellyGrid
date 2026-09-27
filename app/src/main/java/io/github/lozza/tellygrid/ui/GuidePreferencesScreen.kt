@@ -69,18 +69,11 @@ fun GuidePreferencesScreen(
     }
 
     Column(
-        Modifier.fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 36.dp, vertical = 26.dp),
+        Modifier.fillMaxSize().background(ScreenBackground).then(ScreenPadding),
     ) {
-        Text("TELLYGRID", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-        Text("Guide preferences", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 30.sp)
-        Text(
-            "These choices stay on this TV. They never change your broadcaster apps or subscriptions.",
-            color = Color(0xFF9AA6B6), fontSize = 14.sp,
-        )
+        ScreenTitle("GUIDE PREFERENCES", "These choices stay on this TV. They never change your broadcaster apps or subscriptions.")
         Spacer(Modifier.height(22.dp))
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp)) {
             item {
                 PreferenceRow(
                     title = "Guide density",
@@ -133,7 +126,7 @@ fun GuidePreferencesScreen(
             }
             if (hiddenChannels.isNotEmpty()) {
                 item {
-                    Text("Hidden channels remain stored and ordered; restore them above.", color = Color(0xFF9AA6B6), fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
+                    Text("Hidden channels remain stored and ordered; restore them above.", color = ScreenMuted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 2.dp))
                 }
             }
         }
@@ -147,24 +140,4 @@ private fun PreferenceRow(
     action: String,
     onClick: () -> Unit,
     onPreviewKeyEvent: ((androidx.compose.ui.input.key.KeyEvent) -> Boolean)? = null,
-) {
-    var focused by remember { mutableStateOf(false) }
-    Row(
-        Modifier.fillMaxWidth()
-            .height(72.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(if (focused) Color(0xFF263246) else MaterialTheme.colorScheme.surface)
-            .onFocusChanged { focused = it.isFocused }
-            .then(onPreviewKeyEvent?.let { Modifier.onPreviewKeyEvent(it) } ?: Modifier)
-            .clickable(onClick = onClick)
-            .focusable()
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(detail, color = Color(0xFF9AA6B6), fontSize = 12.sp)
-        }
-        Text(action, color = if (focused) MaterialTheme.colorScheme.primary else Color(0xFF9AA6B6), fontSize = 11.sp)
-    }
-}
+) = SettingsRow(title, detail, action, onClick, onPreviewKeyEvent = onPreviewKeyEvent)

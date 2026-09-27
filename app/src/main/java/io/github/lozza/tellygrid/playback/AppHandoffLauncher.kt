@@ -8,7 +8,9 @@ import android.net.Uri
 import io.github.lozza.tellygrid.data.PlaybackTarget
 import io.github.lozza.tellygrid.data.ProviderProgrammeIntent
 import io.github.lozza.tellygrid.data.ProviderId
+import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.BbcIplayerProgrammeLink
+import io.github.lozza.tellygrid.data.ProviderRegistry
 import io.github.lozza.tellygrid.data.PrimeVideoProgrammeLink
 import io.github.lozza.tellygrid.data.TvPublishedProgramme
 
@@ -65,7 +67,18 @@ class AppHandoffLauncher(private val context: Context) {
             }
         }
 
-        // discovery+ exposes no stable live-channel URLs. If the user has
+        // discovery+ plays its own /channel/watch/ links for channels whose IDs we know.
+        if (provider.id == ProviderId.DISCOVERY_PLUS && DiscoveryChannelAutomation.PACKAGE_NAME in packages) {
+            DiscoveryChannelAutomation.liveChannelUri(target.channelId)?.let { uri ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
+                    setPackage(DiscoveryChannelAutomation.PACKAGE_NAME)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} live channel")
+            }
+        }
+
+        // For other discovery+ channels there is no known link. If the user has
         // explicitly enabled TellyGrid's accessibility service, open its
         // verified Home route and perform the short Browse/channel gesture path.
         if (provider.id == ProviderId.DISCOVERY_PLUS &&
@@ -99,6 +112,15 @@ class AppHandoffLauncher(private val context: Context) {
             (selectedPackage == null || selectedPackage == PLUTO_TV_PACKAGE) &&
             PLUTO_TV_PACKAGE in packages
         ) {
+            // Pluto 17 (Paramount build, Sept 2026) rejects the old web route with "the option
+            // you selected is not available", but plays plutotv://live-tv/<id> directly.
+            target.channelUri?.substringAfterLast('/')?.takeIf { it.matches(Regex("[a-f0-9]{24}")) }?.let { id ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("plutotv://live-tv/$id")).apply {
+                    setPackage(PLUTO_TV_PACKAGE)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} live channel")
+            }
             target.channelUri?.let { uri ->
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
                     component = ComponentName(PLUTO_TV_PACKAGE, PLUTO_TV_ENTRY_POINT)
@@ -145,6 +167,48 @@ class AppHandoffLauncher(private val context: Context) {
         return if (tryStart(intent)) LaunchResult.Opened(app.label) else LaunchResult.Failed("Could not open ${app.label}")
     }
 
+    /**
+     * Open a BBC iPlayer catalogue episode. Freeview Play TVs get the verified AIT
+     * request; retail iPlayer gets the public episode link if it claims it. If
+     * neither route is available the iPlayer app opens at its home screen.
+     */
+    fun launch(episode: BbcIplayerEpisode, selectedPackage: String? = null): LaunchResult {
+        val provider = ProviderRegistry.bbc
+        val installed = buildList {
+            selectedPackage?.let(::add)
+            addAll(provider.packageCandidates)
+        }.distinct().filter(::isInstalled)
+
+        BbcIplayerProgrammeLink.intentOrNull(BbcIplayerProgrammeLink.aitUrlForEpisode(episode.id))
+            ?.takeIf { it.matchesSelectedPackage(selectedPackage) && it.providerPackageName in installed }
+            ?.let { if (tryStart(it.toIntent())) return LaunchResult.Opened(episode.title) }
+
+        BbcIplayerProgrammeLink.webUrlForEpisode(episode.id)?.let { uri ->
+            installed.filter { it != BbcIplayerProgrammeLink.PROVIDER_PACKAGE_NAME }.forEach { packageName ->
+                if (!discovery.canHandle(packageName, uri)) return@forEach
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
+                    setPackage(packageName)
+                    addCategory(Intent.CATEGORY_BROWSABLE)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened(episode.title)
+            }
+        }
+
+        installed.forEach { packageName ->
+            val intent = context.packageManager.getLeanbackLaunchIntentForPackage(packageName)
+                ?: context.packageManager.getLaunchIntentForPackage(packageName)
+                ?: return@forEach
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} (this TV has no direct episode link)")
+        }
+        return LaunchResult.Failed("BBC iPlayer is not installed on this TV")
+    }
+
+    private fun isInstalled(packageName: String): Boolean = runCatching {
+        context.packageManager.getPackageInfo(packageName, 0)
+    }.isSuccess
+
     /** Launch the provider-issued intent carried by an Android TV Home card. */
     fun launch(programme: TvPublishedProgramme): LaunchResult {
         val intent = runCatching { Intent.parseUri(programme.intentUri, Intent.URI_INTENT_SCHEME) }
@@ -171,12 +235,14 @@ class AppHandoffLauncher(private val context: Context) {
 
 }
 
+// Inside apply, Intent's own members (e.g. categories) shadow this receiver's, so qualify them.
 private fun ProviderProgrammeIntent.toIntent(): Intent = Intent(action).apply {
-    setPackage(packageName)
-    componentClassName?.let { component = ComponentName(packageName, it) }
-    dataUri?.let { data = Uri.parse(it) }
-    mimeType?.let { type = it }
-    categories.forEach(::addCategory)
-    stringExtras.forEach { (key, value) -> putExtra(key, value) }
+    val spec = this@toIntent
+    setPackage(spec.packageName)
+    spec.componentClassName?.let { component = ComponentName(spec.packageName, it) }
+    spec.dataUri?.let { data = Uri.parse(it) }
+    spec.mimeType?.let { type = it }
+    spec.categories.forEach(::addCategory)
+    spec.stringExtras.forEach { (key, value) -> putExtra(key, value) }
     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 }

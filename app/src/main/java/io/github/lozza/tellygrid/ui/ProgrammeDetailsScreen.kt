@@ -55,7 +55,7 @@ fun ProgrammeDetailsScreen(
     BackHandler(onBack = onBack)
     val formatter = remember { DateTimeFormatter.ofPattern("EEE d MMM · HH:mm").withZone(ZoneId.systemDefault()) }
     Column(
-        modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color(0xFF21162E), Color(0xFF4B3159), Color(0xFF21162E)))).padding(horizontal = 56.dp, vertical = 42.dp),
+        modifier = Modifier.fillMaxSize().background(ScreenBackground).padding(horizontal = 50.dp, vertical = 42.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text("PROGRAMME", color = Color(0xFFE0B5FF), fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)

@@ -24,6 +24,9 @@ import io.github.lozza.tellygrid.data.SkyGuideRepository
 import io.github.lozza.tellygrid.data.ProviderRegistry
 import io.github.lozza.tellygrid.data.GuideViewModel
 import io.github.lozza.tellygrid.data.TvPublishedRecommendations
+import io.github.lozza.tellygrid.data.BbcIplayerCatalogueRepository
+import io.github.lozza.tellygrid.data.BbcIplayerEpisode
+import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
 import io.github.lozza.tellygrid.playback.DiscoveryChannelAccessibilityService
@@ -64,6 +67,7 @@ class MainActivity : ComponentActivity() {
             var channels by remember { mutableStateOf(sampleChannels) }
             var guideStatus by remember { mutableStateOf("Loading Sky listings…") }
             var publishedRecommendations by remember { mutableStateOf(TvPublishedRecommendations()) }
+            var bbcIplayerEpisodes by remember { mutableStateOf(emptyList<BbcIplayerEpisode>()) }
             var tvListingsAllowed by remember {
                 mutableStateOf(checkSelfPermission(TV_LISTINGS_PERMISSION) == PackageManager.PERMISSION_GRANTED)
             }
@@ -97,7 +101,19 @@ class MainActivity : ComponentActivity() {
                     withContext(Dispatchers.IO) {
                         TvPublishedRecommendationsRepository(this@MainActivity).load()
                     }
-                } else TvPublishedRecommendations()
+                } else TvPublishedRecommendations(loaded = true)
+            }
+
+            LaunchedEffect(recommendationsRefresh.value) {
+                val bbcInstalled = ProviderRegistry.bbc.packageCandidates.any { packageName ->
+                    installedApps.any { it.packageName == packageName }
+                }
+                if (bbcInstalled) {
+                    val episodes = withContext(Dispatchers.IO) {
+                        BbcIplayerCatalogueRepository(this@MainActivity).load()
+                    }
+                    if (episodes.isNotEmpty()) bbcIplayerEpisodes = episodes
+                }
             }
 
             LaunchedEffect(guideSettings.reminders, notificationsAllowed) {
@@ -125,6 +141,10 @@ class MainActivity : ComponentActivity() {
                     onLaunchInstalledApp = launcher::launch,
                     onLaunchPublishedProgramme = launcher::launch,
                     publishedRecommendations = publishedRecommendations,
+                    bbcIplayerEpisodes = bbcIplayerEpisodes,
+                    onLaunchBbcIplayerEpisode = { episode ->
+                        launcher.launch(episode, selections[ProviderId.BBC_IPLAYER])
+                    },
                     tvListingsAllowed = tvListingsAllowed,
                     onRequestTvListingsPermission = {
                         tvListingsPermissionLauncher.launch(TV_LISTINGS_PERMISSION)
@@ -138,6 +158,8 @@ class MainActivity : ComponentActivity() {
                     onOpenAndroidSettings = ::openAndroidSettings,
                     launcherAppOrder = guideSettings.launcherAppOrder,
                     onLauncherAppOrderChanged = guideViewModel::setLauncherAppOrder,
+                    hiddenWatchNextPackages = guideSettings.hiddenWatchNextPackages,
+                    onToggleWatchNextApp = guideViewModel::toggleWatchNextApp,
                     onResolveNativeChannel = nativeTv::resolve,
                     onNativeChannelFallback = { channel ->
                         nativeTv.launchExternal(channel)

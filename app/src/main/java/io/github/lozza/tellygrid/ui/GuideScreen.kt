@@ -1,5 +1,7 @@
 package io.github.lozza.tellygrid.ui
 
+import io.github.lozza.tellygrid.R
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -44,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.key
@@ -238,6 +241,7 @@ fun GuideScreen(
             dates = availableDates,
             selectedDate = windowStart.atZone(zone).toLocalDate(),
             today = now.atZone(zone).toLocalDate(),
+            gridFocus = gridFocus,
             onDateSelected = { date ->
                 if (date == now.atZone(zone).toLocalDate()) jumpToNow() else jumpToDate(date)
             },
@@ -289,15 +293,21 @@ fun GuideScreen(
     }
 }
 
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
 private fun GuideDateStrip(
     dates: List<LocalDate>,
     selectedDate: LocalDate,
     today: LocalDate,
+    gridFocus: FocusRequester,
     onDateSelected: (LocalDate) -> Unit,
 ) {
     if (dates.size <= 1) return
+    val selectedFocus = remember { FocusRequester() }
     LazyRow(
+        // Entering the strip from above or below always lands on the selected day,
+        // and leaving downwards always returns to the selected programme.
+        modifier = Modifier.focusProperties { enter = { selectedFocus } },
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         items(dates, key = { it.toEpochDay() }) { date ->
@@ -328,6 +338,8 @@ private fun GuideDateStrip(
                         },
                         RoundedCornerShape(4.dp),
                     )
+                    .then(if (selected) Modifier.focusRequester(selectedFocus) else Modifier)
+                    .focusProperties { down = gridFocus }
                     .onFocusChanged { focused = it.isFocused }
                     .clickable { onDateSelected(date) }
                     .focusable()
@@ -458,35 +470,11 @@ private fun GuideHeader(
 
 @Composable
 private fun TellyGridLogo() {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.width(16.dp).height(5.dp).background(Signal))
-                Box(Modifier.width(6.dp).height(5.dp).background(Paper))
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.width(6.dp).height(11.dp).background(Paper))
-                Box(Modifier.width(16.dp).height(11.dp).background(Signal.copy(alpha = 0.38f)))
-            }
-        }
-        Spacer(Modifier.width(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = "TELLY",
-                color = Paper,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.1.sp,
-            )
-            Text(
-                text = "GRID",
-                color = Signal,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.1.sp,
-            )
-        }
-    }
+    Image(
+        painter = painterResource(R.drawable.logo_full),
+        contentDescription = "TellyGrid",
+        modifier = Modifier.height(18.dp),
+    )
 }
 
 @Composable
@@ -893,7 +881,8 @@ private fun HeaderButton(text: String, onClick: () -> Unit) {
         fontSize = 10.sp,
         letterSpacing = 0.9.sp,
         modifier = Modifier
-            .clip(RoundedCornerShape(50))
+            // Square-ish corners to match the guide grid's cells, not pills.
+            .clip(RoundedCornerShape(2.dp))
             .background(if (focused) Signal else InkQuiet)
             .onFocusChanged { focused = it.isFocused }
             .clickable(onClick = onClick)

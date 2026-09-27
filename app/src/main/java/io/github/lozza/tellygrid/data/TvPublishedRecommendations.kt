@@ -10,17 +10,26 @@ data class TvPublishedProgramme(
     val packageName: String,
     val intentUri: String,
     val artworkUri: String?,
+    /** When the viewer last engaged with this title, as reported by the app; null if unknown. */
+    val lastEngagedAtMillis: Long? = null,
+    val description: String? = null,
 )
 
 data class TvPublishedRecommendations(
     val preview: List<TvPublishedProgramme> = emptyList(),
     val watchNext: List<TvPublishedProgramme> = emptyList(),
+    /** False until the first read of the TV's rows has finished (or was not permitted). */
+    val loaded: Boolean = false,
 )
 
 class TvPublishedRecommendationsRepository(private val context: Context) {
     fun load(): TvPublishedRecommendations = TvPublishedRecommendations(
         preview = read(TvContract.PreviewPrograms.CONTENT_URI),
-        watchNext = read(TvContract.WatchNextPrograms.CONTENT_URI),
+        // The provider returns rows in insertion order, so without sorting the oldest
+        // entries always filled the shelf. Most recently watched first, like Android TV Home.
+        watchNext = read(TvContract.WatchNextPrograms.CONTENT_URI)
+            .sortedByDescending { it.lastEngagedAtMillis ?: Long.MIN_VALUE },
+        loaded = true,
     )
 
     private fun read(uri: android.net.Uri): List<TvPublishedProgramme> = runCatching {
@@ -39,6 +48,9 @@ class TvPublishedRecommendationsRepository(private val context: Context) {
                             intentUri = intentUri,
                             artworkUri = cursor.value("poster_art_uri")?.takeIf(String::isNotBlank)
                                 ?: cursor.value("thumbnail_uri")?.takeIf(String::isNotBlank),
+                            description = cursor.value("short_description")?.trim()?.takeIf(String::isNotBlank),
+                            lastEngagedAtMillis = cursor.value("last_engagement_time_utc_millis")
+                                ?.toLongOrNull()?.takeIf { it > 0 },
                         ),
                     )
                 }

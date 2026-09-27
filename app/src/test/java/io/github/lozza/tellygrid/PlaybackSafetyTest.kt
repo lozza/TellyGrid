@@ -10,6 +10,7 @@ import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.ProviderProgrammeIntent
 import io.github.lozza.tellygrid.data.PrimeVideoProgrammeLink
 import io.github.lozza.tellygrid.data.BbcIplayerProgrammeLink
+import io.github.lozza.tellygrid.data.parseBbcIplayerEpisodes
 import io.github.lozza.tellygrid.data.SampleGuideRepository
 import io.github.lozza.tellygrid.data.ChannelCatalog
 import io.github.lozza.tellygrid.data.GuideCategory
@@ -68,6 +69,38 @@ class PlaybackSafetyTest {
         assertEquals(uri, intent?.dataUri)
         assertNull(PrimeVideoProgrammeLink.intentOrNull("https://www.primevideo.com/detail/Beetlejuice"))
         assertNull(PrimeVideoProgrammeLink.intentOrNull("https://example.com/detail/0OVNAWZXI8WY7LFKU410H1ERG4"))
+    }
+
+    @Test
+    fun `bbc catalogue episode ids build the captured AIT launch format`() {
+        val captured = "https://www.live.bbctvapps.co.uk/tap/iplayer/ait/launch/iplayer.aitx?deeplink=tv/playback/urn:bbc:iplayer:episode:m002y5ls&campaign=catalogue&medium=referral&partner=net.freeviewplay"
+        assertEquals(captured, BbcIplayerProgrammeLink.aitUrlForEpisode("m002y5ls"))
+        assertEquals(captured, BbcIplayerProgrammeLink.intentOrNull(BbcIplayerProgrammeLink.aitUrlForEpisode("m002y5ls"))?.stringExtras?.get("Detail"))
+        assertEquals("https://www.bbc.co.uk/iplayer/episode/m002y5ls", BbcIplayerProgrammeLink.webUrlForEpisode("m002y5ls"))
+        assertNull(BbcIplayerProgrammeLink.aitUrlForEpisode("The Split Up"))
+        assertNull(BbcIplayerProgrammeLink.aitUrlForEpisode("m002y5ls&partner=x"))
+    }
+
+    @Test
+    fun `bbc catalogue parser keeps only real episodes`() {
+        val json = """
+            {"group_episodes":{"elements":[
+              {"type":"episode","id":"m002y5ls","title":"The Split Up","subtitle":"Series 1: Episode 1",
+               "images":{"standard":"https://ichef.bbci.co.uk/images/ic/{recipe}/p0jx1234.jpg"}},
+              {"type":"episode","id":"m002y5ls","title":"Duplicate"},
+              {"type":"episode","id":"b006m86d","title":"EastEnders","subtitle":null,
+               "images":{"standard":"https://example.com/{recipe}.jpg"}},
+              {"type":"programme","id":"b0000001","title":"Not an episode"},
+              {"type":"episode","id":"bad id","title":"Broken"},
+              {"type":"episode","id":"m00abcde","title":""}
+            ]}}
+        """.trimIndent()
+        val episodes = parseBbcIplayerEpisodes(json)
+        assertEquals(listOf("m002y5ls", "b006m86d"), episodes.map { it.id })
+        assertEquals("Series 1: Episode 1", episodes[0].subtitle)
+        assertEquals("https://ichef.bbci.co.uk/images/ic/480x270/p0jx1234.jpg", episodes[0].artworkUri)
+        assertNull(episodes[1].subtitle)
+        assertNull(episodes[1].artworkUri)
     }
 
     @Test
@@ -330,13 +363,14 @@ class PlaybackSafetyTest {
     }
 
     @Test
-    fun `discovery plus lineup includes its UK entertainment channels`() {
+    fun `discovery plus lineup includes its UK entertainment channels, not HGTV which the UK app lacks`() {
         val expected = setOf(
             "discovery", "tlc", "quest", "quest-red", "investigation-discovery",
-            "food-network", "hgtv", "dmax", "animal-planet", "discovery-science",
+            "food-network", "dmax", "animal-planet", "discovery-science", "really",
             "discovery-history", "discovery-turbo",
         )
         assertEquals(expected, ChannelCatalog.byXmlTvId.keys.intersect(expected))
+        assertTrue("hgtv" !in ChannelCatalog.byXmlTvId)
         expected.forEach { id ->
             assertEquals(ProviderId.DISCOVERY_PLUS, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
         }
@@ -351,6 +385,16 @@ class PlaybackSafetyTest {
             assertEquals(ProviderId.HBO_MAX, channel.provider.id)
             assertNull("HBO Max channel links are not device-verified", channel.channelUri)
         }
+    }
+
+    @Test
+    fun `every discovery plus channel has a verified live link`() {
+        ChannelCatalog.channels
+            .filter { it.provider.id == ProviderId.DISCOVERY_PLUS }
+            .forEach { channel ->
+                val uri = DiscoveryChannelAutomation.liveChannelUri(channel.xmlTvId)
+                assertTrue("${channel.displayName} needs a discovery+ live link", uri?.startsWith("https://play.discoveryplus.com/channel/watch/") == true)
+            }
     }
 
     @Test

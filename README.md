@@ -1,13 +1,56 @@
 # TellyGrid
 
 For the current development state, verified TV results and next tasks, see [the 27 September 2026 handoff](docs/HANDOFF-2026-09-27.md).
+The newest changes are summarised under [What's new in alpha 7](#whats-new-in-alpha-7).
 
 **One live TV guide. Every app.**
 
 [![Android APK](https://github.com/lozza/TellyGrid/actions/workflows/android.yml/badge.svg)](https://github.com/lozza/TellyGrid/actions/workflows/android.yml)
 [![Live guide](https://github.com/lozza/TellyGrid/actions/workflows/guide.yml/badge.svg)](https://github.com/lozza/TellyGrid/actions/workflows/guide.yml)
 
-![TellyGrid running on Android TV](dist/TellyGrid.png)
+![TellyGrid Home on Android TV](docs/screenshots/home.png)
+
+| Home rows | Guide |
+| --- | --- |
+| ![Watch next, BBC iPlayer and app rows on Home](docs/screenshots/home-rows.png) | ![Time-grid TV guide](docs/screenshots/guide.png) |
+| **Apps** | **Home app settings** |
+| ![Installed apps](docs/screenshots/apps.png) | ![Choosing the Home row order and Watch next apps](docs/screenshots/home-app-settings.png) |
+| **Settings** | |
+| ![Settings](docs/screenshots/settings.png) | |
+
+## What's new in alpha 7
+
+Checked on the reference Philips Android 11 TV on 27 September 2026.
+
+- **Home looks like a broadcaster's launcher.** A full-width banner rotates every 8 seconds
+  through app recommendations, BBC iPlayer picks, recently watched titles and one live
+  programme, with the artwork running behind the menu. Left/Right on its button skips
+  between picks, and it opens that title in its app. Larger artwork is requested from
+  known image CDNs so the banner stays sharp.
+- **Watch next is ordered by what you watched last** (it previously showed the oldest
+  12 entries), and **Apps → Home app settings → Watch next apps** chooses which apps may
+  add to it.
+- **BBC iPlayer row** of popular episodes that open the exact episode (from the BBC
+  iPlayer thread's change), plus a crash fix for provider handoffs that also affected
+  the guide.
+- **Faster artwork.** Jellyfin pictures are fetched resized from the Jellyfin server
+  rather than through its slow TV image provider, and all artwork is cached on disk.
+- **Pluto TV channels work again.** Pluto 17 (Paramount build, 23 Sept 2026) rejected the
+  old web route; TellyGrid now sends `plutotv://live-tv/<channel id>`.
+- **discovery+ opens the live channel** for Discovery, TLC, Quest, Investigation
+  Discovery, Quest Red, Animal Planet, Food Network, DMAX, Really, Discovery Science,
+  Discovery Turbo and Discovery History, using
+  `https://play.discoveryplus.com/channel/watch/<channel>/<edit>` links. HGTV was removed
+  because the UK app does not carry it.
+- **Home live TV cards open the channel** the same way the guide does (TV tuner for
+  Freeview channels). Freeview channels such as Sky Mix no longer appear on the NOW row,
+  and the "Ones to watch" row is gone.
+- **New look:** Plus Jakarta Sans throughout (SIL OFL, see `docs/PlusJakartaSans-OFL.txt`),
+  a new TellyGrid wordmark and Android TV banner/icon, one shared style for Settings,
+  Guide filters, Guide preferences and Search, consistent spacing, and icon buttons on
+  Home app settings.
+- **Remote fixes:** Back on the guide returns to TellyGrid Home; the guide's day tabs
+  always move to/from the selected day and programme; Home rows scroll fully into view.
 
 ## Download
 
@@ -45,19 +88,25 @@ wrappers retain reliable exact-tuner playback. The catalogue contains 82 channel
 Its Freeview section includes the main
 BBC, ITV, Channel 4, 5, U and discovery-owned terrestrial services. The NOW rows use
 device-verified channel links for Entertainment, Kids, Cinema and Sports, including
-the current Sky One lineup. The discovery+ catalogue now includes all 12 live
-entertainment channels listed by discovery+ UK; HGTV remains visible with a listings-
-unavailable placeholder because it is not present in the Sky source.
+the current Sky One lineup. The discovery+ catalogue includes the 12 live
+entertainment channels in the UK discovery+ TV app, each with a device-verified
+live-channel link.
 
 The sports section also includes TNT Sports 1–4 using Sky listings and an HBO Max
 handoff. HBO Max officially lists those four UK linear channels, but TellyGrid has
 not verified channel-specific HBO Max links or playback with an active subscription;
 selecting one therefore opens the installed HBO Max TV app.
 
-### Optional discovery+ channel control
+### discovery+ live channels
 
-The discovery+ Android TV app does not publish stable per-channel deep links. TellyGrid
-includes an experimental, optional Accessibility Service that can open discovery+
+The discovery+ Android TV app (21.12) plays `https://play.discoveryplus.com/channel/watch/<channel-uuid>/<edit-uuid>`
+links directly. The UK UUIDs were copied from the discovery+ website and each opened the
+live channel on the reference TV; they live in `playback/DiscoveryChannelAutomation.kt`.
+
+### Optional discovery+ channel control (fallback)
+
+Older builds of the discovery+ Android TV app did not accept per-channel links. TellyGrid
+still includes an experimental, optional Accessibility Service that can open discovery+
 Browse and tap the chosen live-channel tile only on devices with a touchscreen input
 source. The first-run disclosure explains the behaviour and shows the manual TV-settings
 path; the user must enable the service themselves. It is off by default and can be

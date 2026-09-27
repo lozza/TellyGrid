@@ -39,6 +39,8 @@ fun UnifiedGuideApp(
     onLaunchInstalledApp: (InstalledTvApp) -> LaunchResult,
     onLaunchPublishedProgramme: (io.github.lozza.tellygrid.data.TvPublishedProgramme) -> LaunchResult,
     publishedRecommendations: io.github.lozza.tellygrid.data.TvPublishedRecommendations,
+    bbcIplayerEpisodes: List<io.github.lozza.tellygrid.data.BbcIplayerEpisode>,
+    onLaunchBbcIplayerEpisode: (io.github.lozza.tellygrid.data.BbcIplayerEpisode) -> LaunchResult,
     tvListingsAllowed: Boolean,
     onRequestTvListingsPermission: () -> Unit,
     onOpenHomeSettings: () -> Unit,
@@ -46,6 +48,8 @@ fun UnifiedGuideApp(
     onOpenAndroidSettings: () -> Boolean,
     launcherAppOrder: List<String>,
     onLauncherAppOrderChanged: (List<String>) -> Unit,
+    hiddenWatchNextPackages: Set<String>,
+    onToggleWatchNextApp: (String) -> Unit,
     onResolveNativeChannel: (Int) -> NativeTvChannel?,
     onNativeChannelFallback: (NativeTvChannel) -> LaunchResult,
     providers: List<ProviderApp>,
@@ -174,22 +178,12 @@ fun UnifiedGuideApp(
         }
     }
 
-    fun launchFromHome(channel: GuideChannel, programme: io.github.lozza.tellygrid.data.Programme) {
-        when (val target = channel.playback) {
-            is PlaybackTarget.ProviderHandoff -> {
-                status = when (val result = launchProviderTarget(target.copy(
-                    contentUri = programme.contentUri,
-                    programmeIntent = programme.programmeIntent,
-                ))) {
-                    is LaunchResult.Opened -> "Opening ${result.destination}"
-                    is LaunchResult.Failed -> result.message
-                }
-            }
-            else -> launch(channel, programme)
-        }
-    }
+    // Home live cards open the channel exactly as the guide does (TV tuner for Freeview
+    // channels, the app's channel link otherwise), not just the provider app's home screen.
+    fun launchFromHome(channel: GuideChannel, programme: io.github.lozza.tellygrid.data.Programme) = launch(channel, programme)
 
     MaterialTheme(
+        typography = TellyGridTypography,
         colorScheme = MaterialTheme.colorScheme.copy(
             primary = Color(0xFF70C8FF),
             background = Color(0xFF090D16),
@@ -199,17 +193,33 @@ fun UnifiedGuideApp(
         ),
     ) {
         val playing = playerTarget
+        // Back from the guide returns to TellyGrid's Home rather than leaving the launcher.
+        // Screens opened on top of the guide register their own handlers later, so they win.
+        BackHandler(enabled = !showingHome) { showingHome = true }
         if (showingHome) {
             if (showingApps) {
                 LauncherAppsScreen(
                     installedApps = installedApps,
                     appOrder = launcherAppOrder,
                     onAppOrderChanged = onLauncherAppOrderChanged,
+                    watchNextPublishers = publishedRecommendations.watchNext.map { it.packageName }.toSet(),
+                    hiddenWatchNextPackages = hiddenWatchNextPackages,
+                    onToggleWatchNextApp = onToggleWatchNextApp,
                     onLaunchApp = { app ->
                         status = when (val result = onLaunchInstalledApp(app)) {
                             is LaunchResult.Opened -> "Opening ${result.destination}"
                             is LaunchResult.Failed -> result.message
                         }
+                    },
+                    onOpenGuide = {
+                        showingApps = false
+                        showingHome = false
+                    },
+                    onOpenSettings = {
+                        showingApps = false
+                        setupOpenedFromHome = true
+                        showingHome = false
+                        showingSetup = true
                     },
                     onBack = { showingApps = false },
                 )
@@ -238,6 +248,13 @@ fun UnifiedGuideApp(
                             is LaunchResult.Failed -> result.message
                         }
                     },
+                    bbcIplayerEpisodes = bbcIplayerEpisodes,
+                    onOpenBbcIplayerEpisode = { episode ->
+                        status = when (val result = onLaunchBbcIplayerEpisode(episode)) {
+                            is LaunchResult.Opened -> "Opening ${result.destination}"
+                            is LaunchResult.Failed -> result.message
+                        }
+                    },
                     onOpenApps = { showingApps = true },
                     onOpenSettings = {
                         setupOpenedFromHome = true
@@ -247,6 +264,7 @@ fun UnifiedGuideApp(
                     onSetDefaultLauncher = onOpenHomeSettings,
                     onEnableHomeOverride = onEnableHomeOverride,
                     launcherAppOrder = launcherAppOrder,
+                    hiddenWatchNextPackages = hiddenWatchNextPackages,
                 )
             }
         } else if (details != null) {
