@@ -28,7 +28,7 @@ This is an early test version, so far tested on a Philips Android 11 Freeview Pl
 
 TellyGrid only hands off to apps you already have. It contains no streams, accounts or tokens.
 
-### Make sure to into Accessibility settings to force the Launcher as the main app. It will stop the Android TV default from loading. Home and Back buttons will then work as expected.
+### Make sure go into Accessibility settings to force the Launcher as the main app. It will stop the Android TV default from loading. Home and Back buttons will then work as expected.
 
 ## What's new in alpha 7
 
