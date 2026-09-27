@@ -73,6 +73,8 @@ data class GuideSettings(
     val density: GuideDensity = GuideDensity.COMFORTABLE,
     val providerSelections: Map<ProviderId, String> = emptyMap(),
     val launcherAppOrder: List<String> = emptyList(),
+    /** Apps whose Watch Next entries are hidden from Home. New apps show by default. */
+    val hiddenWatchNextPackages: Set<String> = emptySet(),
     val hasSeenDiscoveryAccessibilityDisclosure: Boolean = false,
     val legacyMigrationComplete: Boolean = false,
     val reminders: Set<GuideReminder> = emptySet(),
@@ -98,6 +100,7 @@ class GuidePreferences(private val context: Context) {
         val legacyMigrationComplete = booleanPreferencesKey("legacy_preferences_migrated_v1")
         val reminders = stringSetPreferencesKey("programme_reminders_v1")
         val launcherAppOrder = stringPreferencesKey("launcher_app_order")
+        val hiddenWatchNextPackages = stringSetPreferencesKey("hidden_watch_next_packages")
 
         fun providerSelection(providerId: ProviderId) =
             stringPreferencesKey("provider_selection_${providerId.name.lowercase()}")
@@ -126,6 +129,7 @@ class GuidePreferences(private val context: Context) {
                 }.toMap(),
                 launcherAppOrder = values[Keys.launcherAppOrder]
                     ?.split('|')?.filter(String::isNotBlank).orEmpty(),
+                hiddenWatchNextPackages = values[Keys.hiddenWatchNextPackages].orEmpty(),
                 hasSeenDiscoveryAccessibilityDisclosure =
                     values[Keys.discoveryAccessibilityDisclosure] ?: false,
                 legacyMigrationComplete = values[Keys.legacyMigrationComplete] ?: false,
@@ -243,6 +247,12 @@ class GuidePreferences(private val context: Context) {
         it[Keys.launcherAppOrder] = order.distinct().joinToString("|")
     }
 
+    suspend fun toggleWatchNextApp(packageName: String) = context.guideDataStore.edit { values ->
+        val hidden = values[Keys.hiddenWatchNextPackages].orEmpty()
+        values[Keys.hiddenWatchNextPackages] =
+            if (packageName in hidden) hidden - packageName else hidden + packageName
+    }
+
     suspend fun markDiscoveryAccessibilityDisclosureSeen() = context.guideDataStore.edit {
         it[Keys.discoveryAccessibilityDisclosure] = true
     }
@@ -305,6 +315,9 @@ class GuideViewModel(application: Application) : AndroidViewModel(application) {
     }
     fun setLauncherAppOrder(order: List<String>) = viewModelScope.launch {
         preferences.setLauncherAppOrder(order)
+    }
+    fun toggleWatchNextApp(packageName: String) = viewModelScope.launch {
+        preferences.toggleWatchNextApp(packageName)
     }
     fun markDiscoveryAccessibilityDisclosureSeen() = viewModelScope.launch {
         preferences.markDiscoveryAccessibilityDisclosureSeen()

@@ -100,9 +100,7 @@ fun ProviderSetupScreen(
     }
 
     Column(
-        Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF21162E), Color(0xFF4B3159), Color(0xFF21162E))))
-            .padding(horizontal = 50.dp, vertical = 28.dp),
+        Modifier.fillMaxSize().background(ScreenBackground).then(ScreenPadding),
     ) {
         Text(
             if (editing == null) "SETTINGS" else "${editing!!.displayName.uppercase()} APP",
@@ -129,7 +127,7 @@ fun ProviderSetupScreen(
         }
 
         if (editing == null) {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp)) {
                 item {
                     SetupRow(
                         title = "Android TV settings",
@@ -182,7 +180,7 @@ fun ProviderSetupScreen(
             }
         } else {
             val provider = editing!!
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 28.dp)) {
                 item {
                     val disabled = provider.id in guideSettings.disabledProviderIds
                     SetupRow(
@@ -227,33 +225,4 @@ private fun SetupRow(
     detail: String,
     onClick: () -> Unit,
     requestInitialFocus: Boolean = false,
-) {
-    var focused by remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-    if (requestInitialFocus) {
-        LaunchedEffect(Unit) { focusRequester.requestFocus() }
-    }
-    val background by animateColorAsState(
-        if (focused) Color(0xFF8D294D) else Color(0xFF35263F),
-        label = "setup row background",
-    )
-    Row(
-        Modifier.fillMaxWidth()
-            .height(64.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(background)
-            .then(if (focused) Modifier.border(2.dp, Color(0xFFFF365B), RoundedCornerShape(4.dp)) else Modifier)
-            .focusRequester(focusRequester)
-            .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
-            .focusable()
-            .padding(horizontal = 18.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column {
-            Text(title, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-            Text(detail, color = Color(0xFFCDBFDB), fontSize = 12.sp)
-        }
-        Text("SELECT", color = if (focused) Color.White else Color(0xFFCDBFDB), fontSize = 11.sp)
-    }
-}
+) = SettingsRow(title, detail, "SELECT", onClick, requestInitialFocus = requestInitialFocus)

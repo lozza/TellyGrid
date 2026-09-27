@@ -101,7 +101,7 @@ class MainActivity : ComponentActivity() {
                     withContext(Dispatchers.IO) {
                         TvPublishedRecommendationsRepository(this@MainActivity).load()
                     }
-                } else TvPublishedRecommendations()
+                } else TvPublishedRecommendations(loaded = true)
             }
 
             LaunchedEffect(recommendationsRefresh.value) {
@@ -158,6 +158,8 @@ class MainActivity : ComponentActivity() {
                     onOpenAndroidSettings = ::openAndroidSettings,
                     launcherAppOrder = guideSettings.launcherAppOrder,
                     onLauncherAppOrderChanged = guideViewModel::setLauncherAppOrder,
+                    hiddenWatchNextPackages = guideSettings.hiddenWatchNextPackages,
+                    onToggleWatchNextApp = guideViewModel::toggleWatchNextApp,
                     onResolveNativeChannel = nativeTv::resolve,
                     onNativeChannelFallback = { channel ->
                         nativeTv.launchExternal(channel)

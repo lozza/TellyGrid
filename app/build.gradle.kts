@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.lozza.tellygrid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.6.0-alpha.6"
+        versionCode = 7
+        versionName = "0.7.0-alpha.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         val epgUrl = providers.gradleProperty("EPG_URL")

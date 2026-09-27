@@ -68,8 +68,7 @@ fun GuideSearchScreen(
 
     Column(
         Modifier.fillMaxSize()
-            .background(Brush.verticalGradient(listOf(Color(0xFF21162E), Color(0xFF4B3159), Color(0xFF21162E))))
-            .padding(horizontal = 50.dp, vertical = 28.dp),
+            .background(ScreenBackground).then(ScreenPadding),
     ) {
         Text("SEARCH", color = Color.White, fontWeight = FontWeight.Medium, fontSize = 25.sp, letterSpacing = 1.sp)
         Text(

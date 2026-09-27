@@ -67,7 +67,18 @@ class AppHandoffLauncher(private val context: Context) {
             }
         }
 
-        // discovery+ exposes no stable live-channel URLs. If the user has
+        // discovery+ plays its own /channel/watch/ links for channels whose IDs we know.
+        if (provider.id == ProviderId.DISCOVERY_PLUS && DiscoveryChannelAutomation.PACKAGE_NAME in packages) {
+            DiscoveryChannelAutomation.liveChannelUri(target.channelId)?.let { uri ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
+                    setPackage(DiscoveryChannelAutomation.PACKAGE_NAME)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} live channel")
+            }
+        }
+
+        // For other discovery+ channels there is no known link. If the user has
         // explicitly enabled TellyGrid's accessibility service, open its
         // verified Home route and perform the short Browse/channel gesture path.
         if (provider.id == ProviderId.DISCOVERY_PLUS &&
@@ -101,6 +112,15 @@ class AppHandoffLauncher(private val context: Context) {
             (selectedPackage == null || selectedPackage == PLUTO_TV_PACKAGE) &&
             PLUTO_TV_PACKAGE in packages
         ) {
+            // Pluto 17 (Paramount build, Sept 2026) rejects the old web route with "the option
+            // you selected is not available", but plays plutotv://live-tv/<id> directly.
+            target.channelUri?.substringAfterLast('/')?.takeIf { it.matches(Regex("[a-f0-9]{24}")) }?.let { id ->
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse("plutotv://live-tv/$id")).apply {
+                    setPackage(PLUTO_TV_PACKAGE)
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                if (tryStart(intent)) return LaunchResult.Opened("${provider.displayName} live channel")
+            }
             target.channelUri?.let { uri ->
                 val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri)).apply {
                     component = ComponentName(PLUTO_TV_PACKAGE, PLUTO_TV_ENTRY_POINT)
@@ -215,8 +235,7 @@ class AppHandoffLauncher(private val context: Context) {
 
 }
 
-// Read fields through `spec`: inside apply, bare `categories` resolves to
-// Intent.getCategories() (null for a new intent) and crashed every handoff.
+// Inside apply, Intent's own members (e.g. categories) shadow this receiver's, so qualify them.
 private fun ProviderProgrammeIntent.toIntent(): Intent = Intent(action).apply {
     val spec = this@toIntent
     setPackage(spec.packageName)

@@ -363,13 +363,14 @@ class PlaybackSafetyTest {
     }
 
     @Test
-    fun `discovery plus lineup includes its UK entertainment channels`() {
+    fun `discovery plus lineup includes its UK entertainment channels, not HGTV which the UK app lacks`() {
         val expected = setOf(
             "discovery", "tlc", "quest", "quest-red", "investigation-discovery",
-            "food-network", "hgtv", "dmax", "animal-planet", "discovery-science",
+            "food-network", "dmax", "animal-planet", "discovery-science", "really",
             "discovery-history", "discovery-turbo",
         )
         assertEquals(expected, ChannelCatalog.byXmlTvId.keys.intersect(expected))
+        assertTrue("hgtv" !in ChannelCatalog.byXmlTvId)
         expected.forEach { id ->
             assertEquals(ProviderId.DISCOVERY_PLUS, ChannelCatalog.byXmlTvId.getValue(id).provider.id)
         }
@@ -384,6 +385,16 @@ class PlaybackSafetyTest {
             assertEquals(ProviderId.HBO_MAX, channel.provider.id)
             assertNull("HBO Max channel links are not device-verified", channel.channelUri)
         }
+    }
+
+    @Test
+    fun `every discovery plus channel has a verified live link`() {
+        ChannelCatalog.channels
+            .filter { it.provider.id == ProviderId.DISCOVERY_PLUS }
+            .forEach { channel ->
+                val uri = DiscoveryChannelAutomation.liveChannelUri(channel.xmlTvId)
+                assertTrue("${channel.displayName} needs a discovery+ live link", uri?.startsWith("https://play.discoveryplus.com/channel/watch/") == true)
+            }
     }
 
     @Test

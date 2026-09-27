@@ -113,7 +113,6 @@ object ChannelCatalog {
         channel("nicktoons", 135, "Nicktoons", "NOW Kids", 0xFFE83E8CL, ProviderRegistry.now, nowChannelUri(1849), category = GuideCategory.KIDS),
 
         channel("discovery", 120, "Discovery", "discovery+", 0xFFFF6B35L, ProviderRegistry.discoveryPlus, category = GuideCategory.DOCUMENTARY),
-        channel("hgtv", 121, "HGTV", "discovery+", 0xFF2BAE66L, ProviderRegistry.discoveryPlus),
         channel("animal-planet", 122, "Animal Planet", "discovery+", 0xFF4AA96CL, ProviderRegistry.discoveryPlus, category = GuideCategory.DOCUMENTARY),
         channel("investigation-discovery", 123, "Investigation Discovery", "discovery+", 0xFFBD3346L, ProviderRegistry.discoveryPlus),
         channel("discovery-science", 124, "Discovery Science", "discovery+", 0xFF367DB5L, ProviderRegistry.discoveryPlus, category = GuideCategory.DOCUMENTARY),
