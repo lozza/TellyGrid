@@ -185,6 +185,7 @@ class MainActivity : ComponentActivity() {
                     onGuideTimelineChanged = guideViewModel::setTimelineStart,
                     onGuideSelectionChanged = guideViewModel::setSelection,
                     onFavouriteChanged = guideViewModel::toggleFavourite,
+                    onFavouriteShowChanged = guideViewModel::toggleFavouriteShow,
                     notificationsAllowed = notificationsAllowed,
                     onRequestNotificationPermission = {
                         if (android.os.Build.VERSION.SDK_INT >= 33) {
