@@ -1,9 +1,13 @@
 package io.github.lozza.tellygrid.playback
 
 import android.accessibilityservice.AccessibilityService
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.SystemClock
+import android.provider.Settings
+import android.text.TextUtils
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import io.github.lozza.tellygrid.MainActivity
@@ -71,9 +75,20 @@ class HomeOverrideAccessibilityService : AccessibilityService() {
             .toSet()
     }.getOrDefault(emptySet())
 
-    private companion object {
-        const val DEBOUNCE_MS = 500L
-        val KNOWN_STOCK_LAUNCHERS = setOf(
+    companion object {
+        /** True when the user has switched this service on in Android's Accessibility settings. */
+        fun isEnabled(context: Context): Boolean {
+            val expected = ComponentName(context, HomeOverrideAccessibilityService::class.java)
+            val enabled = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES,
+            ) ?: return false
+            val splitter = TextUtils.SimpleStringSplitter(':').apply { setString(enabled) }
+            return splitter.any { ComponentName.unflattenFromString(it) == expected }
+        }
+
+        private const val DEBOUNCE_MS = 500L
+        private val KNOWN_STOCK_LAUNCHERS = setOf(
             "com.google.android.tvlauncher",
             "com.google.android.apps.tv.launcherx",
             "com.google.android.leanbacklauncher",

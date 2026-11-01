@@ -30,11 +30,13 @@ import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
 import io.github.lozza.tellygrid.playback.DiscoveryChannelAccessibilityService
+import io.github.lozza.tellygrid.playback.HomeOverrideAccessibilityService
 import io.github.lozza.tellygrid.playback.NativeTvChannelLauncher
 import io.github.lozza.tellygrid.playback.ReminderScheduler
 import io.github.lozza.tellygrid.playback.TvAppDiscovery
 import io.github.lozza.tellygrid.ui.UnifiedGuideApp
 import io.github.lozza.tellygrid.ui.AccessibilityDisclosureScreen
+import io.github.lozza.tellygrid.ui.HomeOverrideSetupScreen
 
 private const val TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS"
 
@@ -42,6 +44,7 @@ class MainActivity : ComponentActivity() {
     private val discoveryAccessibilityEnabled = mutableStateOf(false)
     private val recommendationsRefresh = mutableStateOf(0)
     private val homePresses = mutableStateOf(0)
+    private val homeOverrideEnabled = mutableStateOf(true)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,6 +56,7 @@ class MainActivity : ComponentActivity() {
         val sampleChannels = SampleGuideRepository().channels()
 
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
+        homeOverrideEnabled.value = HomeOverrideAccessibilityService.isEnabled(this)
 
         setContent {
             val guideViewModel: GuideViewModel = viewModel()
@@ -121,7 +125,14 @@ class MainActivity : ComponentActivity() {
                 guideViewModel.reconcileReminders(notificationsAllowed)
             }
 
-            if (
+            if (!homeOverrideEnabled.value) {
+                // Required setup: without the Home override the remote's Home button opens the
+                // stock launcher. Shown on first install and whenever the TV turns it off again.
+                HomeOverrideSetupScreen(
+                    onOpenAccessibilitySettings = ::openHomeOverrideSettings,
+                    onCheckAgain = ::refreshHomeOverrideEnabled,
+                )
+            } else if (
                 guideSettings.legacyMigrationComplete &&
                 discoveryGestureSupported &&
                 !guideSettings.hasSeenDiscoveryAccessibilityDisclosure
@@ -216,8 +227,12 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
+        refreshHomeOverrideEnabled()
         recommendationsRefresh.value++
     }
+
+    private fun refreshHomeOverrideEnabled(): Boolean =
+        HomeOverrideAccessibilityService.isEnabled(this).also { homeOverrideEnabled.value = it }
 
     private fun openHomeRoleSettings() {
         if (android.os.Build.VERSION.SDK_INT >= 29) {
@@ -246,6 +261,11 @@ class MainActivity : ComponentActivity() {
         val intents: List<Intent> = listOf(
             Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
                 data = Uri.parse("package:$packageName")
+                putExtra(
+                    Intent.EXTRA_COMPONENT_NAME,
+                    android.content.ComponentName(this@MainActivity, HomeOverrideAccessibilityService::class.java)
+                        .flattenToString(),
+                )
             },
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
             Intent(Settings.ACTION_SETTINGS),
