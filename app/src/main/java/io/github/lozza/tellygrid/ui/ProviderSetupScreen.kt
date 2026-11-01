@@ -81,6 +81,11 @@ fun ProviderSetupScreen(
         )
         return
     }
+    var showingAppUpdates by remember { mutableStateOf(false) }
+    if (showingAppUpdates) {
+        AppUpdateScreen(onBack = { showingAppUpdates = false })
+        return
+    }
 
     Column(
         Modifier.fillMaxSize().background(ScreenBackground).then(ScreenPadding),
@@ -117,6 +122,13 @@ fun ProviderSetupScreen(
                         detail = "Open the TV's system settings",
                         onClick = { androidSettingsError = !onOpenAndroidSettings() },
                         requestInitialFocus = true,
+                    )
+                }
+                item {
+                    SetupRow(
+                        title = "App updates",
+                        detail = appUpdateRowDetail(),
+                        onClick = { showingAppUpdates = true },
                     )
                 }
                 item {

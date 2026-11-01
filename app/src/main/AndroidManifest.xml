@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.READ_TV_LISTINGS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <uses-feature
         android:name="android.software.leanback"
@@ -36,6 +37,16 @@
             <data
                 android:mimeType="vnd.android.cursor.item/channel"
                 android:scheme="content" />
+        </intent>
+        <!-- Routes into the TV's Accessibility settings for the Home override setup screen. -->
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_TV_OEM_LINK" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
         </intent>
         <package android:name="uk.co.freeview.bbc" />
         <package android:name="uk.co.freeview.itv" />
@@ -69,6 +80,8 @@
             android:name=".MainActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|uiMode"
             android:exported="true"
+            android:launchMode="singleTask"
+            android:resumeWhilePausing="true"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -107,6 +120,16 @@
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_file_paths" />
+        </provider>
     </application>
 
 </manifest>

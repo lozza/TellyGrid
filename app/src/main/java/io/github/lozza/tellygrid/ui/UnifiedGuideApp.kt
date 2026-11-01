@@ -4,13 +4,21 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import io.github.lozza.tellygrid.data.BbcIplayerEpisode
+import io.github.lozza.tellygrid.data.FavouriteShow
+import io.github.lozza.tellygrid.data.FavouriteSource
 import io.github.lozza.tellygrid.data.GuideChannel
+import io.github.lozza.tellygrid.data.TvPublishedProgramme
+import io.github.lozza.tellygrid.data.asFavourite
+import io.github.lozza.tellygrid.data.favouriteKeyForBbc
+import io.github.lozza.tellygrid.data.nextAiring
 import io.github.lozza.tellygrid.data.GuideFilter
 import io.github.lozza.tellygrid.data.GuideDensity
 import io.github.lozza.tellygrid.data.GuideSettings
@@ -66,6 +74,7 @@ fun UnifiedGuideApp(
     onGuideTimelineChanged: (Long) -> Unit,
     onGuideSelectionChanged: (String?, String?) -> Unit,
     onFavouriteChanged: (String) -> Unit,
+    onFavouriteShowChanged: (FavouriteShow) -> Unit,
     notificationsAllowed: Boolean,
     onRequestNotificationPermission: () -> Unit,
     onReminderChanged: (GuideReminder) -> Unit,
@@ -74,6 +83,7 @@ fun UnifiedGuideApp(
     onResetChannelOrder: () -> Unit,
     onGuideDensityChanged: (GuideDensity) -> Unit,
     onResetChannelManagement: () -> Unit,
+    homePresses: Int = 0,
 ) {
     var playerTarget by remember { mutableStateOf<PlaybackTarget.LicensedStream?>(null) }
     var nativeChannel by remember { mutableStateOf<NativeTvChannel?>(null) }
@@ -84,8 +94,27 @@ fun UnifiedGuideApp(
     var showingSearch by remember { mutableStateOf(false) }
     var showingHome by rememberSaveable { mutableStateOf(true) }
     var showingApps by rememberSaveable { mutableStateOf(false) }
+    var showingFavourites by rememberSaveable { mutableStateOf(false) }
+    // Details opened from Favourites (a show that isn't on yet) go back there, not to the guide.
+    var detailsFromFavourites by remember { mutableStateOf(false) }
+    val favouriteKeys = remember(guideSettings.favouriteShows) { guideSettings.favouriteShows.map { it.key }.toSet() }
     var details by remember { mutableStateOf<Pair<GuideChannel, io.github.lozza.tellygrid.data.Programme>?>(null) }
     val saveableStateHolder = rememberSaveableStateHolder()
+    // The remote's Home button while TellyGrid is already open returns to the Home tab,
+    // closing whatever screen is on top, like a normal TV launcher.
+    LaunchedEffect(homePresses) {
+        if (homePresses == 0) return@LaunchedEffect
+        playerTarget = null
+        nativeChannel = null
+        details = null
+        showingSetup = false
+        showingFilter = false
+        showingSearch = false
+        showingApps = false
+        showingFavourites = false
+        showingHome = true
+        status = null
+    }
     val featured = remember(channels) {
         val now = java.time.Instant.now()
         channels.asSequence()
@@ -176,6 +205,53 @@ fun UnifiedGuideApp(
         }
     }
 
+    fun LaunchResult.describe(): String = when (this) {
+        is LaunchResult.Opened -> "Opening $destination"
+        is LaunchResult.Failed -> message
+    }
+
+    /** Opens a saved favourite the same way as the card it was saved from. */
+    fun openFavourite(show: FavouriteShow) {
+        when (show.source) {
+            FavouriteSource.APP -> {
+                // Prefer the app's current row for this show, as its link may have been refreshed.
+                val current = (publishedRecommendations.watchNext + publishedRecommendations.preview)
+                    .firstOrNull { it.asFavourite("").key == show.key }
+                val programme = current ?: TvPublishedProgramme(
+                    title = show.title,
+                    packageName = show.packageName ?: return,
+                    intentUri = show.intentUri ?: return,
+                    artworkUri = show.artworkUri,
+                )
+                status = onLaunchPublishedProgramme(programme).describe()
+            }
+            FavouriteSource.BBC_IPLAYER -> {
+                val episode = bbcIplayerEpisodes.firstOrNull { favouriteKeyForBbc(it.title) == show.key }
+                    ?: BbcIplayerEpisode(
+                        id = show.bbcEpisodeId ?: return,
+                        title = show.title,
+                        subtitle = null,
+                        artworkUri = show.artworkUri,
+                    )
+                status = onLaunchBbcIplayerEpisode(episode).describe()
+            }
+            FavouriteSource.GUIDE -> {
+                val airing = show.nextAiring(channels, java.time.Instant.now())
+                when {
+                    airing == null -> status = "${show.title} isn't in the TV guide right now"
+                    airing.onNow || airing.programme.contentUri != null || airing.programme.programmeIntent != null ->
+                        launch(airing.channel, airing.programme)
+                    else -> {
+                        // Not on yet: show when it's on, with the option to set a reminder.
+                        details = airing.channel to airing.programme
+                        detailsFromFavourites = true
+                        showingHome = false
+                    }
+                }
+            }
+        }
+    }
+
     // Home live cards open the channel exactly as the guide does (TV tuner for Freeview
     // channels, the app's channel link otherwise), not just the provider app's home screen.
     fun launchFromHome(channel: GuideChannel, programme: io.github.lozza.tellygrid.data.Programme) = launch(channel, programme)
@@ -213,6 +289,11 @@ fun UnifiedGuideApp(
                         showingApps = false
                         showingHome = false
                     },
+                    onOpenFavourites = {
+                        showingApps = false
+                        showingFavourites = true
+                        status = null
+                    },
                     onOpenSettings = {
                         showingApps = false
                         setupOpenedFromHome = true
@@ -220,6 +301,30 @@ fun UnifiedGuideApp(
                         showingSetup = true
                     },
                     onBack = { showingApps = false },
+                )
+            } else if (showingFavourites) {
+                LauncherFavouritesScreen(
+                    favourites = guideSettings.favouriteShows,
+                    guideChannels = channels,
+                    installedApps = installedApps,
+                    status = status,
+                    onOpenFavourite = ::openFavourite,
+                    onRemoveFavourite = onFavouriteShowChanged,
+                    onOpenHome = { showingFavourites = false },
+                    onOpenApps = {
+                        showingFavourites = false
+                        showingApps = true
+                    },
+                    onOpenGuide = {
+                        showingFavourites = false
+                        showingHome = false
+                    },
+                    onOpenSettings = {
+                        showingFavourites = false
+                        setupOpenedFromHome = true
+                        showingHome = false
+                        showingSetup = true
+                    },
                 )
             } else {
                 LauncherHomeScreen(
@@ -263,6 +368,12 @@ fun UnifiedGuideApp(
                     onEnableHomeOverride = onEnableHomeOverride,
                     launcherAppOrder = launcherAppOrder,
                     hiddenWatchNextPackages = hiddenWatchNextPackages,
+                    favouriteKeys = favouriteKeys,
+                    onToggleFavourite = onFavouriteShowChanged,
+                    onOpenFavourites = {
+                        status = null
+                        showingFavourites = true
+                    },
                 )
             }
         } else if (details != null) {
@@ -271,6 +382,8 @@ fun UnifiedGuideApp(
                 channel = channel,
                 programme = programme,
                 isFavourite = channel.id in guideSettings.favouriteChannelIds,
+                isFavouriteShow = programme.asFavourite(channel).key in favouriteKeys,
+                onToggleFavouriteShow = { onFavouriteShowChanged(programme.asFavourite(channel)) },
                 hasReminder = guideSettings.reminders.any {
                     it.sameProgramme(GuideReminder.forProgramme(channel, programme))
                 },
@@ -278,6 +391,8 @@ fun UnifiedGuideApp(
                 notificationsAllowed = notificationsAllowed,
                 onWatch = {
                     details = null
+                    if (detailsFromFavourites) showingHome = true
+                    detailsFromFavourites = false
                     launch(channel, programme)
                 },
                 onToggleFavourite = { onFavouriteChanged(channel.id) },
@@ -287,7 +402,11 @@ fun UnifiedGuideApp(
                     details = null
                     onChannelVisibilityChanged(channel.id)
                 },
-                onBack = { details = null },
+                onBack = {
+                    details = null
+                    if (detailsFromFavourites) showingHome = true
+                    detailsFromFavourites = false
+                },
             )
         } else if (showingFilter) {
             GuideFilterScreen(
@@ -358,8 +477,21 @@ fun UnifiedGuideApp(
                         showingFilter = false
                         showingSearch = false
                         showingSetup = false
+                        showingFavourites = false
                         showingHome = true
                     },
+                    onOpenFavourites = {
+                        details = null
+                        showingFilter = false
+                        showingSearch = false
+                        showingSetup = false
+                        showingApps = false
+                        showingFavourites = true
+                        status = null
+                        showingHome = true
+                    },
+                    favouriteShowKeys = favouriteKeys,
+                    onToggleFavouriteShow = { channel, programme -> onFavouriteShowChanged(programme.asFavourite(channel)) },
                     onOpenSetup = {
                         setupOpenedFromHome = false
                         showingSetup = true

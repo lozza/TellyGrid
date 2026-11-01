@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Downloaded TellyGrid update APKs, handed to the system package installer. -->
+    <cache-path name="updates" path="updates/" />
+</paths>
