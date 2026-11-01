@@ -90,6 +90,11 @@ fun ProviderSetupScreen(
         )
         return
     }
+    var showingAppUpdates by remember { mutableStateOf(false) }
+    if (showingAppUpdates) {
+        AppUpdateScreen(onBack = { showingAppUpdates = false })
+        return
+    }
 
     if (showingAccessibilityInstructions) {
         AccessibilityDisclosureScreen(
@@ -134,6 +139,13 @@ fun ProviderSetupScreen(
                         detail = "Open the TV's system settings",
                         onClick = { androidSettingsError = !onOpenAndroidSettings() },
                         requestInitialFocus = true,
+                    )
+                }
+                item {
+                    SetupRow(
+                        title = "App updates",
+                        detail = appUpdateRowDetail(),
+                        onClick = { showingAppUpdates = true },
                     )
                 }
                 item {

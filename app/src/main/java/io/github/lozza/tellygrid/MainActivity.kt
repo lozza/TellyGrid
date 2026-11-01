@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import io.github.lozza.tellygrid.update.AppUpdater
 import io.github.lozza.tellygrid.data.SampleGuideRepository
 import io.github.lozza.tellygrid.data.SkyGuideRepository
 import io.github.lozza.tellygrid.data.ProviderRegistry
@@ -94,6 +95,10 @@ class MainActivity : ComponentActivity() {
                 }.onFailure {
                     guideStatus = "Sky listings unavailable — showing demo data"
                 }
+            }
+
+            LaunchedEffect(Unit) {
+                AppUpdater.checkIfDue(this@MainActivity)
             }
 
             LaunchedEffect(tvListingsAllowed, recommendationsRefresh.value) {
