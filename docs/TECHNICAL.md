@@ -101,7 +101,7 @@ physical-TV testing.
 
 Android TV keeps the stock launcher as the system Home on many TVs, including the
 reference Philips. TellyGrid therefore uses an accessibility service, "TellyGrid Home
-button override", which only listens for the remote's Home key and brings TellyGrid to
+button override", which listens for the remote's Home key and brings TellyGrid to
 the front (`playback/HomeOverrideAccessibilityService.kt`). Without it, Home opens the
 stock launcher.
 
@@ -110,6 +110,17 @@ off again, `ui/HomeOverrideSetupScreen.kt` blocks the launcher with step-by-step
 instructions and an "Open Accessibility settings" button. TellyGrid never switches the
 service on itself. If the TV kills TellyGrid's process, the first Home press afterwards
 can briefly show the stock launcher.
+
+### Remote buttons
+
+Since alpha 8.1, Settings → Remote buttons maps other remote buttons to a TellyGrid page
+(Home, Apps, TV Guide, Favourites or Settings). The same accessibility service catches a
+mapped button anywhere on the TV, swallows its down, repeats and up, and starts
+`MainActivity` with `EXTRA_DESTINATION`. While Settings waits for "press a button", the
+service hands the next button to the screen (`RemoteButtonCapture`) so buttons the TV
+normally grabs, such as Settings, can be picked. Arrows, OK, Back, Home, power, volume
+and number buttons are reserved. Mappings live in their own SharedPreferences file
+(`playback/RemoteButtons.kt`, `ui/RemoteButtonsScreen.kt`).
 
 The older discovery+ accessibility workaround has been removed; discovery+ channels
 open through their direct links.
@@ -145,7 +156,7 @@ before installing.
 Every release must:
 
 - increase `versionCode` and `versionName` in `app/build.gradle.kts`;
-- be tagged `v<versionName>`, for example `v0.8.0-alpha.8`;
+- be tagged `v<versionName>`, for example `v0.8.1-alpha.8.1`;
 - attach an APK signed with the same key as earlier releases, otherwise Android
   refuses to install it over the existing app.
 
@@ -208,7 +219,7 @@ Important boundaries:
 - Authentication stays inside provider apps. Do not collect provider credentials.
 - The Home button override is the only accessibility service. It is required, and
   TellyGrid shows a setup screen until the user turns it on themselves. It must stay
-  narrowly scoped to the Home key and fully disclosed. Do not enable it
+  narrowly scoped to the Home key and buttons the user has mapped, and fully disclosed. Do not enable it
   programmatically or expand it into general screen inspection.
 
 ## Project map
@@ -222,6 +233,7 @@ Important boundaries:
 - `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/HomeOverrideSetupScreen.kt`: required setup screen for the Home button override.
+- `ui/RemoteButtonsScreen.kt`: Settings → Remote buttons.
 - `data/FavouriteShows.kt`: saved Favourites.
 - `update/AppUpdater.kt`: in-app updates from GitHub Releases.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.

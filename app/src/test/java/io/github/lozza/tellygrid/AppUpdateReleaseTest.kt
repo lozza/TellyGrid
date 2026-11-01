@@ -13,6 +13,7 @@ class AppUpdateReleaseTest {
     @Test
     fun `versions compare as semantic versions with numeric pre-release parts`() {
         assertTrue(isNewerVersion("0.8.0-alpha.8", "0.7.0-alpha.7"))
+        assertTrue(isNewerVersion("0.8.1-alpha.8.1", "0.8.0-alpha.8"))
         assertTrue(isNewerVersion("0.7.0-alpha.10", "0.7.0-alpha.9"))
         assertTrue(isNewerVersion("0.7.0", "0.7.0-alpha.7"))
         assertTrue(isNewerVersion("v1.0.0", "0.9.9"))
