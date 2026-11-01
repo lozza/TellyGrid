@@ -277,6 +277,7 @@ fun UnifiedGuideApp(
                     onOpenFavourites = {
                         showingApps = false
                         showingFavourites = true
+                        status = null
                     },
                     onOpenSettings = {
                         showingApps = false
@@ -354,7 +355,10 @@ fun UnifiedGuideApp(
                     hiddenWatchNextPackages = hiddenWatchNextPackages,
                     favouriteKeys = favouriteKeys,
                     onToggleFavourite = onFavouriteShowChanged,
-                    onOpenFavourites = { showingFavourites = true },
+                    onOpenFavourites = {
+                        status = null
+                        showingFavourites = true
+                    },
                 )
             }
         } else if (details != null) {
@@ -470,6 +474,7 @@ fun UnifiedGuideApp(
                         showingSetup = false
                         showingApps = false
                         showingFavourites = true
+                        status = null
                         showingHome = true
                     },
                     favouriteShowKeys = favouriteKeys,
