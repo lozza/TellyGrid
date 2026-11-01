@@ -2,5 +2,5 @@
 <resources>
     <string name="app_name">TellyGrid</string>
     <string name="home_override_accessibility_label">TellyGrid Home button override</string>
-    <string name="home_override_accessibility_description">Opens TellyGrid when the Android TV Home button is pressed, so TellyGrid stays your home screen. It does not read or record screen content.</string>
+    <string name="home_override_accessibility_description">Opens TellyGrid when the Android TV Home button is pressed, so TellyGrid stays your home screen, and lets you set other remote buttons to open TellyGrid pages. It does not read or record screen content.</string>
 </resources>

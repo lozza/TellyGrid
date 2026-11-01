@@ -86,6 +86,11 @@ fun ProviderSetupScreen(
         AppUpdateScreen(onBack = { showingAppUpdates = false })
         return
     }
+    var showingRemoteButtons by remember { mutableStateOf(false) }
+    if (showingRemoteButtons) {
+        RemoteButtonsScreen(onBack = { showingRemoteButtons = false })
+        return
+    }
 
     Column(
         Modifier.fillMaxSize().background(ScreenBackground).then(ScreenPadding),
@@ -129,6 +134,13 @@ fun ProviderSetupScreen(
                         title = "App updates",
                         detail = appUpdateRowDetail(),
                         onClick = { showingAppUpdates = true },
+                    )
+                }
+                item {
+                    SetupRow(
+                        title = "Remote buttons",
+                        detail = remoteButtonsRowDetail(),
+                        onClick = { showingRemoteButtons = true },
                     )
                 }
                 item {
