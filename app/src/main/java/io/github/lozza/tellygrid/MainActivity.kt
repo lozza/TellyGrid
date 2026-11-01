@@ -166,6 +166,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onEnableHomeOverride = {
                         openHomeOverrideSettings()
+                        Unit
                     },
                     onOpenAndroidSettings = ::openAndroidSettings,
                     launcherAppOrder = guideSettings.launcherAppOrder,
@@ -257,22 +258,26 @@ class MainActivity : ComponentActivity() {
         return intents.any { intent -> runCatching { startActivity(intent) }.isSuccess }
     }
 
-    private fun openHomeOverrideSettings() {
-        val intents: List<Intent> = listOf(
-            Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
-                data = Uri.parse("package:$packageName")
-                putExtra(
-                    Intent.EXTRA_COMPONENT_NAME,
-                    android.content.ComponentName(this@MainActivity, HomeOverrideAccessibilityService::class.java)
-                        .flattenToString(),
-                )
-            },
+    /**
+     * Opens the screen where the Home override is switched on. TV makers wire Settings up
+     * differently (the service's own details page needs a system-only permission, and some
+     * TVs ignore the standard Accessibility action), so try each route in turn and stop at
+     * the first one that actually starts.
+     */
+    private fun openHomeOverrideSettings(): Boolean {
+        val intents = listOfNotNull(
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+            Intent(Intent.ACTION_MAIN).setClassName(
+                "com.android.tv.settings",
+                "com.android.tv.settings.accessibility.AccessibilityActivity",
+            ),
             Intent(Settings.ACTION_SETTINGS),
+            packageManager.getLeanbackLaunchIntentForPackage("com.android.tv.settings"),
+            packageManager.getLaunchIntentForPackage("com.android.tv.settings"),
         )
-        intents.firstOrNull { intent ->
-            packageManager.resolveActivity(intent, 0) != null
-        }?.let(::startActivity)
+        return intents.any { intent ->
+            runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        }
     }
 
 }

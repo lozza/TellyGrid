@@ -49,10 +49,11 @@ import io.github.lozza.tellygrid.R
  */
 @Composable
 fun HomeOverrideSetupScreen(
-    onOpenAccessibilitySettings: () -> Unit,
+    onOpenAccessibilitySettings: () -> Boolean,
     onCheckAgain: () -> Boolean,
 ) {
     var stillOff by remember { mutableStateOf(false) }
+    var settingsFailed by remember { mutableStateOf(false) }
     // TellyGrid is the launcher, so Back has nowhere sensible to go from here.
     BackHandler {}
     MaterialTheme(typography = TellyGridTypography) {
@@ -96,15 +97,25 @@ fun HomeOverrideSetupScreen(
                 SetupStep(3, "Switch it on, confirm, then press Back to return here")
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Can't find it? Open your TV's Settings, then Device Preferences (on Philips TVs: " +
-                        "Android settings, Device Preferences), then Accessibility.",
+                    "Can't find it? Open your TV's Settings and look for Accessibility. It's usually under " +
+                        "Device Preferences, System or General (on Philips TVs: Android settings, Device Preferences).",
                     color = ScreenMuted,
                     fontSize = 13.sp,
                 )
                 Spacer(Modifier.height(26.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    SetupButton("Open Accessibility settings", onOpenAccessibilitySettings, primary = true)
+                    SetupButton("Open Accessibility settings", { settingsFailed = !onOpenAccessibilitySettings() }, primary = true)
                     SetupButton("I've turned it on", { stillOff = !onCheckAgain() }, primary = false)
+                }
+                if (settingsFailed) {
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        "This TV wouldn't open its settings from here. Press the Settings button on your remote " +
+                            "(or the gear icon), then find Accessibility.",
+                        color = FocusRing,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
                 if (stillOff) {
                     Spacer(Modifier.height(12.dp))
