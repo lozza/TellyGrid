@@ -75,7 +75,6 @@ data class GuideSettings(
     val launcherAppOrder: List<String> = emptyList(),
     /** Apps whose Watch Next entries are hidden from Home. New apps show by default. */
     val hiddenWatchNextPackages: Set<String> = emptySet(),
-    val hasSeenDiscoveryAccessibilityDisclosure: Boolean = false,
     val legacyMigrationComplete: Boolean = false,
     val reminders: Set<GuideReminder> = emptySet(),
 )
@@ -96,7 +95,6 @@ class GuidePreferences(private val context: Context) {
         val selectedChannel = stringPreferencesKey("selected_channel_id")
         val selectedProgramme = stringPreferencesKey("selected_programme_id")
         val density = stringPreferencesKey("density")
-        val discoveryAccessibilityDisclosure = booleanPreferencesKey("discovery_accessibility_disclosure_seen")
         val legacyMigrationComplete = booleanPreferencesKey("legacy_preferences_migrated_v1")
         val reminders = stringSetPreferencesKey("programme_reminders_v1")
         val launcherAppOrder = stringPreferencesKey("launcher_app_order")
@@ -130,17 +128,15 @@ class GuidePreferences(private val context: Context) {
                 launcherAppOrder = values[Keys.launcherAppOrder]
                     ?.split('|')?.filter(String::isNotBlank).orEmpty(),
                 hiddenWatchNextPackages = values[Keys.hiddenWatchNextPackages].orEmpty(),
-                hasSeenDiscoveryAccessibilityDisclosure =
-                    values[Keys.discoveryAccessibilityDisclosure] ?: false,
                 legacyMigrationComplete = values[Keys.legacyMigrationComplete] ?: false,
                 reminders = values[Keys.reminders].orEmpty().mapNotNull(::decodeReminder).toSet(),
             )
         }
 
     /**
-     * One-way, idempotent import of the two pre-DataStore preference files. The
-     * legacy files remain intact so a failed upgrade never erases a TV owner's app
-     * choices or disclosure acknowledgement.
+     * One-way, idempotent import of the pre-DataStore provider preference file. The
+     * legacy file remains intact so a failed upgrade never erases a TV owner's app
+     * choices.
      */
     suspend fun migrateLegacyPreferences() = context.guideDataStore.edit { values ->
         if (values[Keys.legacyMigrationComplete] == true) return@edit
@@ -157,14 +153,6 @@ class GuidePreferences(private val context: Context) {
             values[destination] = packageName
         }
 
-        val legacyDisclosure = context.getSharedPreferences(
-            "accessibility_disclosure",
-            Context.MODE_PRIVATE,
-        ).getBoolean("discovery_channel_control_seen", false)
-        values[Keys.discoveryAccessibilityDisclosure] = migratedDisclosure(
-            values[Keys.discoveryAccessibilityDisclosure],
-            legacyDisclosure,
-        )
         values[Keys.legacyMigrationComplete] = true
     }
 
@@ -253,10 +241,6 @@ class GuidePreferences(private val context: Context) {
             if (packageName in hidden) hidden - packageName else hidden + packageName
     }
 
-    suspend fun markDiscoveryAccessibilityDisclosureSeen() = context.guideDataStore.edit {
-        it[Keys.discoveryAccessibilityDisclosure] = true
-    }
-
     suspend fun setOrder(order: List<String>) = context.guideDataStore.edit {
         it[Keys.order] = order.distinct().joinToString("|")
     }
@@ -319,9 +303,6 @@ class GuideViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleWatchNextApp(packageName: String) = viewModelScope.launch {
         preferences.toggleWatchNextApp(packageName)
     }
-    fun markDiscoveryAccessibilityDisclosureSeen() = viewModelScope.launch {
-        preferences.markDiscoveryAccessibilityDisclosureSeen()
-    }
     fun resetChannelManagement() = viewModelScope.launch { preferences.resetChannelManagement() }
 }
 
@@ -336,8 +317,6 @@ internal fun mergeProviderSelections(
     existing: Map<ProviderId, String>,
     legacy: Map<ProviderId, String>,
 ): Map<ProviderId, String> = legacy + existing
-
-internal fun migratedDisclosure(existing: Boolean?, legacy: Boolean): Boolean = existing ?: legacy
 
 internal fun encodeReminder(reminder: GuideReminder): String = listOf(
     reminder.channelId,

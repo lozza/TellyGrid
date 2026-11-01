@@ -53,34 +53,6 @@ The discovery+ Android TV app (21.12) plays `https://play.discoveryplus.com/chan
 links directly. The UK UUIDs were copied from the discovery+ website and each opened the
 live channel on the reference TV; they live in `playback/DiscoveryChannelAutomation.kt`.
 
-### Optional discovery+ channel control (fallback)
-
-Older builds of the discovery+ Android TV app did not accept per-channel links. TellyGrid
-still includes an experimental, optional Accessibility Service that can open discovery+
-Browse and tap the chosen live-channel tile only on devices with a touchscreen input
-source. The first-run disclosure explains the behaviour and shows the manual TV-settings
-path; the user must enable the service themselves. It is off by default and can be
-disabled at any time.
-
-Typical Android TV path: **Settings → Device Preferences (or Android settings) →
-Accessibility → TellyGrid discovery+ channel control → Enable**. On Philips TVs, start
-at **Settings → Android settings → Device Preferences → Accessibility**. Menu names can
-vary by manufacturer.
-
-Standard non-touch Android TVs cannot use this route: Android only dispatches accessibility
-gestures to a touch input pipeline, discovery+ 21.10.0.73 exposes no actionable accessibility
-nodes, and accessibility services cannot inject D-pad keys. TellyGrid detects the missing
-`android.hardware.touchscreen` feature, skips automation, and opens discovery+ normally.
-
-The service is package-restricted to `com.discovery.dplay`, requests gesture capability
-but not accessibility-node retrieval, and neither reads nor records screen content. It
-runs a short gesture sequence only after the user selects a discovery+ channel in
-TellyGrid. The coordinates were verified with discovery+ 21.10.0.73 on a 1920×1080
-Android 11 TV and are inherently more fragile than NOW's supported channel links.
-Discovery, TLC, Quest, ID, Quest Red, Animal Planet, Food Network, DMAX, Discovery
-Science, Turbo and Discovery History are mapped. If a channel is absent from the
-installed app's live row, TellyGrid stops on Browse for manual selection.
-
 discovery+ does accept exact web links for individual programmes. TellyGrid will use
 one when the XMLTV feed supplies a verified
 `https://play.discoveryplus.com/video/watch/{show-uuid}/{video-uuid}` URL in either a
@@ -180,9 +152,9 @@ Important boundaries:
 - Treat direct playback as a server-authorised capability. Media3 supports Widevine,
   but technical DRM support does not grant content rights.
 - Authentication stays inside provider apps. Do not collect provider credentials.
-- Accessibility control must remain optional, narrowly package-scoped and fully
-  disclosed. Do not enable it programmatically or expand it into general screen
-  inspection.
+- Accessibility services (the Home button override) must remain optional, narrowly
+  scoped and fully disclosed. Do not enable them programmatically or expand them into
+  general screen inspection.
 
 ## Project map
 
@@ -193,7 +165,6 @@ Important boundaries:
 - `playback/NativeTvChannelLauncher.kt`: local Freeview LCN and tuner-input resolution.
 - `ui/NativeTvPlayerScreen.kt`: in-app Android `TvView`; Back resets it and restores the guide.
 - `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
-- `playback/DiscoveryChannelAccessibilityService.kt`: opt-in, discovery+-only gesture handoff.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.

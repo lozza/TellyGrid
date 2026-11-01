@@ -78,32 +78,6 @@ class AppHandoffLauncher(private val context: Context) {
             }
         }
 
-        // For other discovery+ channels there is no known link. If the user has
-        // explicitly enabled TellyGrid's accessibility service, open its
-        // verified Home route and perform the short Browse/channel gesture path.
-        if (provider.id == ProviderId.DISCOVERY_PLUS &&
-            DiscoveryChannelAccessibilityService.isGestureInjectionSupported(context) &&
-            DiscoveryChannelAccessibilityService.isEnabled(context) &&
-            DiscoveryChannelAutomation.PACKAGE_NAME in packages &&
-            discovery.canHandle(DiscoveryChannelAutomation.PACKAGE_NAME, DiscoveryChannelAutomation.HOME_URI) &&
-            DiscoveryChannelAccessibilityService.queueChannel(target.channelId)
-        ) {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(DiscoveryChannelAutomation.HOME_URI)).apply {
-                setPackage(DiscoveryChannelAutomation.PACKAGE_NAME)
-                addCategory(Intent.CATEGORY_BROWSABLE)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            if (tryStart(intent)) {
-                val destination = if (DiscoveryChannelAutomation.hasDirectGesture(target.channelId)) {
-                    "${provider.displayName} ${target.channelId.replace('-', ' ')}"
-                } else {
-                    "${provider.displayName} Browse"
-                }
-                return LaunchResult.Opened(destination)
-            }
-            DiscoveryChannelAccessibilityService.cancelQueuedChannel()
-        }
-
         // Pluto's Android TV manifest does not claim its public web route, but
         // its exported EntryPoint accepts the same route when started explicitly.
         // This was verified with the COPS channel on the reference Philips TV.

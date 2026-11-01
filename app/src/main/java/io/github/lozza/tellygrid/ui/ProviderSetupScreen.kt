@@ -51,8 +51,6 @@ fun ProviderSetupScreen(
     selections: Map<ProviderId, String>,
     channels: List<GuideChannel>,
     guideSettings: GuideSettings,
-    discoveryAccessibilitySupported: Boolean,
-    discoveryAccessibilityEnabled: Boolean,
     onSelect: (ProviderId, String?) -> Unit,
     onProviderEnabledChanged: (ProviderId) -> Unit,
     onGuideDensityChanged: (GuideDensity) -> Unit,
@@ -64,17 +62,10 @@ fun ProviderSetupScreen(
     onBack: () -> Unit,
 ) {
     var editing by remember { mutableStateOf<ProviderApp?>(null) }
-    var showingAccessibilityInstructions by remember { mutableStateOf(false) }
-    var showingAccessibilityUnsupported by remember { mutableStateOf(false) }
     var showingGuidePreferences by remember { mutableStateOf(false) }
     var androidSettingsError by remember { mutableStateOf(false) }
-    BackHandler(enabled = !showingAccessibilityInstructions && !showingAccessibilityUnsupported) {
+    BackHandler {
         if (editing != null) editing = null else onBack()
-    }
-
-    if (showingAccessibilityUnsupported) {
-        AccessibilityUnsupportedScreen(onBack = { showingAccessibilityUnsupported = false })
-        return
     }
 
     if (showingGuidePreferences) {
@@ -87,14 +78,6 @@ fun ProviderSetupScreen(
             onResetOrder = onResetOrder,
             onResetChannelManagement = onResetChannelManagement,
             onBack = { showingGuidePreferences = false },
-        )
-        return
-    }
-
-    if (showingAccessibilityInstructions) {
-        AccessibilityDisclosureScreen(
-            onContinue = { showingAccessibilityInstructions = false },
-            onNotNow = { showingAccessibilityInstructions = false },
         )
         return
     }
@@ -141,26 +124,6 @@ fun ProviderSetupScreen(
                         title = "Guide preferences",
                         detail = "Density, hidden channels and reset controls",
                         onClick = { showingGuidePreferences = true },
-                        requestInitialFocus = false,
-                    )
-                }
-                item {
-                    SetupRow(
-                        title = "Discovery+ direct channels",
-                        detail = if (!discoveryAccessibilitySupported) {
-                            "Unavailable — this TV blocks accessibility touch gestures"
-                        } else if (discoveryAccessibilityEnabled) {
-                            "Accessibility control enabled — select to review the manual settings path"
-                        } else {
-                            "Optional — select to see the manual settings path"
-                        },
-                        onClick = {
-                            if (discoveryAccessibilitySupported) {
-                                showingAccessibilityInstructions = true
-                            } else {
-                                showingAccessibilityUnsupported = true
-                            }
-                        },
                         requestInitialFocus = false,
                     )
                 }

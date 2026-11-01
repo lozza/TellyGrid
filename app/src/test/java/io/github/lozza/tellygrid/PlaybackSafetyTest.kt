@@ -18,7 +18,6 @@ import io.github.lozza.tellygrid.data.GuideSettings
 import io.github.lozza.tellygrid.data.Programme
 import io.github.lozza.tellygrid.data.mergeGuideSchedules
 import io.github.lozza.tellygrid.data.mergeProviderSelections
-import io.github.lozza.tellygrid.data.migratedDisclosure
 import io.github.lozza.tellygrid.data.forGuideSettings
 import io.github.lozza.tellygrid.data.searchGuide
 import io.github.lozza.tellygrid.data.searchResultTimelineStart
@@ -133,13 +132,6 @@ class PlaybackSafetyTest {
 
         assertEquals("retail.now", migrated[ProviderId.NOW])
         assertEquals("legacy.bbc", migrated[ProviderId.BBC_IPLAYER])
-    }
-
-    @Test
-    fun `legacy disclosure migration never clears an existing acknowledgement`() {
-        assertTrue(migratedDisclosure(existing = true, legacy = false))
-        assertTrue(migratedDisclosure(existing = null, legacy = true))
-        assertTrue(!migratedDisclosure(existing = null, legacy = false))
     }
 
     @Test
@@ -394,23 +386,6 @@ class PlaybackSafetyTest {
             .forEach { channel ->
                 val uri = DiscoveryChannelAutomation.liveChannelUri(channel.xmlTvId)
                 assertTrue("${channel.displayName} needs a discovery+ live link", uri?.startsWith("https://play.discoveryplus.com/channel/watch/") == true)
-            }
-    }
-
-    @Test
-    fun `discovery accessibility gestures cover channels present in the TV app row`() {
-        val browseOnly = setOf("hgtv", "really")
-        ChannelCatalog.channels
-            .filter { it.provider.id == ProviderId.DISCOVERY_PLUS }
-            .forEach { channel ->
-                assertEquals(
-                    "${channel.displayName} gesture availability changed",
-                    channel.xmlTvId !in browseOnly,
-                    DiscoveryChannelAutomation.hasDirectGesture(channel.xmlTvId),
-                )
-                DiscoveryChannelAutomation.planFor(channel.xmlTvId).tapXFraction?.let { x ->
-                    assertTrue("${channel.displayName} tap must stay on-screen", x in 0f..1f)
-                }
             }
     }
 

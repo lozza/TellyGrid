@@ -29,17 +29,14 @@ import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
-import io.github.lozza.tellygrid.playback.DiscoveryChannelAccessibilityService
 import io.github.lozza.tellygrid.playback.NativeTvChannelLauncher
 import io.github.lozza.tellygrid.playback.ReminderScheduler
 import io.github.lozza.tellygrid.playback.TvAppDiscovery
 import io.github.lozza.tellygrid.ui.UnifiedGuideApp
-import io.github.lozza.tellygrid.ui.AccessibilityDisclosureScreen
 
 private const val TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS"
 
 class MainActivity : ComponentActivity() {
-    private val discoveryAccessibilityEnabled = mutableStateOf(false)
     private val recommendationsRefresh = mutableStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -47,11 +44,7 @@ class MainActivity : ComponentActivity() {
         val launcher = AppHandoffLauncher(this)
         val nativeTv = NativeTvChannelLauncher(this)
         val discovery = TvAppDiscovery(this)
-        val discoveryGestureSupported =
-            DiscoveryChannelAccessibilityService.isGestureInjectionSupported(this)
         val sampleChannels = SampleGuideRepository().channels()
-
-        discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
 
         setContent {
             val guideViewModel: GuideViewModel = viewModel()
@@ -120,20 +113,7 @@ class MainActivity : ComponentActivity() {
                 guideViewModel.reconcileReminders(notificationsAllowed)
             }
 
-            if (
-                guideSettings.legacyMigrationComplete &&
-                discoveryGestureSupported &&
-                !guideSettings.hasSeenDiscoveryAccessibilityDisclosure
-            ) {
-                AccessibilityDisclosureScreen(
-                    onContinue = {
-                        guideViewModel.markDiscoveryAccessibilityDisclosureSeen()
-                    },
-                    onNotNow = {
-                        guideViewModel.markDiscoveryAccessibilityDisclosureSeen()
-                    },
-                )
-            } else {
+            run {
                 UnifiedGuideApp(
                     channels = channels,
                     guideStatus = guideStatus,
@@ -172,8 +152,6 @@ class MainActivity : ComponentActivity() {
                     suggestedApps = suggestedApps,
                     selections = selections,
                     guideSettings = guideSettings,
-                    discoveryAccessibilitySupported = discoveryGestureSupported,
-                    discoveryAccessibilityEnabled = discoveryAccessibilityEnabled.value,
                     onProviderSelected = { providerId, packageName ->
                         guideViewModel.selectProvider(providerId, packageName)
                     },
@@ -206,7 +184,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
         recommendationsRefresh.value++
     }
 
