@@ -1195,7 +1195,7 @@ private fun Modifier.showCardClicks(onClick: () -> Unit, onOptions: (() -> Unit)
             Key.Menu, Key.Info -> onOptions?.let { it(); true } ?: false
             else -> false
         }
-    }.combinedClickable(onClick = onClick, onLongClick = onOptions)
+    }.dpadOkPress(onClick, onOptions).combinedClickable(onClick = onClick, onLongClick = onOptions)
 
 @Composable
 private fun RecordDot(modifier: Modifier = Modifier) {
@@ -1263,6 +1263,8 @@ private fun DialogButton(label: String, recordDot: Boolean = false, initialFocus
             .background(if (focused) LauncherFocus else LauncherQuiet)
             .focusRequester(requester)
             .onFocusChanged { focused = it.isFocused }
+            // The OK held to open this box keeps repeating; only a fresh press may click.
+            .dpadOkPress(onClick, onLongClick = {})
             .clickable(onClick = onClick)
             .focusable()
             .padding(horizontal = 15.dp, vertical = 10.dp),

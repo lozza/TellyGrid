@@ -124,6 +124,8 @@ private fun DetailAction(label: String, primary: Boolean = false, initialFocus: 
             .background(if (focused) Color(0xFFFF365B) else if (primary) Color(0xFF6E477C) else Color(0xFF35263F), RoundedCornerShape(4.dp))
             .focusRequester(requester)
             .onFocusChanged { focused = it.isFocused }
+            // Opened by holding OK in the guide: ignore that held press, only a fresh one clicks.
+            .dpadOkPress(onClick, onLongClick = {})
             .clickable(onClick = onClick)
             .focusable()
             .padding(horizontal = 18.dp, vertical = 13.dp),

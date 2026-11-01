@@ -842,6 +842,7 @@ private fun ProgrammeTile(
                 }
             }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .dpadOkPress(onClick, onLongClick)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .focusable(),
     ) {
