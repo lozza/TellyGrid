@@ -260,24 +260,29 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Opens the screen where the Home override is switched on. TV makers wire Settings up
-     * differently (the service's own details page needs a system-only permission, and some
-     * TVs ignore the standard Accessibility action), so try each route in turn and stop at
-     * the first one that actually starts.
+     * differently: the service's own details page needs a system-only permission, and on
+     * Google TV builds (e.g. Philips) the standard Accessibility action opens an empty stub
+     * while the real page sits behind ACCESSIBILITY_TV_OEM_LINK. So try each route in turn,
+     * skip stubs, and stop at the first one that actually starts.
      */
     private fun openHomeOverrideSettings(): Boolean {
         val intents = listOfNotNull(
+            Intent("android.settings.ACCESSIBILITY_TV_OEM_LINK"),
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
-            Intent(Intent.ACTION_MAIN).setClassName(
-                "com.android.tv.settings",
-                "com.android.tv.settings.accessibility.AccessibilityActivity",
-            ),
             Intent(Settings.ACTION_SETTINGS),
             packageManager.getLeanbackLaunchIntentForPackage("com.android.tv.settings"),
             packageManager.getLaunchIntentForPackage("com.android.tv.settings"),
         )
         return intents.any { intent ->
-            runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+            val target = packageManager.resolveActivity(intent, 0)?.activityInfo?.packageName
+            target != null && target !in SETTINGS_STUB_PACKAGES &&
+                runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
         }
+    }
+
+    private companion object {
+        /** Placeholder activities some TV builds register for Settings actions they don't support. */
+        val SETTINGS_STUB_PACKAGES = setOf("com.google.android.tv.frameworkpackagestubs")
     }
 
 }
