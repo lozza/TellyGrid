@@ -138,6 +138,12 @@ object AppUpdater {
         }
     }
 
+    /** Back in TellyGrid after the installer or settings: the update wasn't applied, so offer it again. */
+    fun returnedToApp() {
+        val current = state
+        if (current is AppUpdateState.Installing) state = AppUpdateState.Available(current.release)
+    }
+
     private fun download(context: Context, release: AppUpdateRelease): File {
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val target = File(dir, "TellyGrid-${release.version.replace(Regex("[^A-Za-z0-9._-]"), "_")}.apk")

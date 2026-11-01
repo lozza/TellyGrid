@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import io.github.lozza.tellygrid.update.AppUpdateRelease
 import io.github.lozza.tellygrid.update.AppUpdateState
 import io.github.lozza.tellygrid.update.AppUpdater
@@ -45,6 +46,11 @@ fun AppUpdateScreen(onBack: () -> Unit) {
     // Opening the page always asks GitHub again, unless an update is already in hand.
     LaunchedEffect(Unit) {
         if (release == null) AppUpdater.check(context)
+    }
+    // Coming back from Android's installer or settings means the user cancelled or backed out.
+    LifecycleResumeEffect(Unit) {
+        AppUpdater.returnedToApp()
+        onPauseOrDispose {}
     }
 
     Column(Modifier.fillMaxSize().background(ScreenBackground).then(ScreenPadding)) {
