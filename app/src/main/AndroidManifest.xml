@@ -95,20 +95,6 @@
         </activity>
 
         <service
-            android:name=".playback.DiscoveryChannelAccessibilityService"
-            android:description="@string/discovery_accessibility_description"
-            android:exported="true"
-            android:label="@string/discovery_accessibility_label"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-            <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
-            </intent-filter>
-            <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/discovery_channel_accessibility_service" />
-        </service>
-
-        <service
             android:name=".playback.HomeOverrideAccessibilityService"
             android:description="@string/home_override_accessibility_description"
             android:exported="true"
