@@ -1,6 +1,9 @@
 package io.github.lozza.tellygrid
 
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -10,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +46,12 @@ class MainActivity : ComponentActivity() {
     private val discoveryAccessibilityEnabled = mutableStateOf(false)
     private val recommendationsRefresh = mutableStateOf(0)
     private val homePresses = mutableStateOf(0)
+    private val installedAppsRefresh = mutableStateOf(0)
+    private val packageChangeReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            installedAppsRefresh.value++
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,7 +64,21 @@ class MainActivity : ComponentActivity() {
 
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
 
+        ContextCompat.registerReceiver(
+            this,
+            packageChangeReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addAction(Intent.ACTION_PACKAGE_CHANGED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                addDataScheme("package")
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
+
         setContent {
+            val appsVersion = installedAppsRefresh.value
             val guideViewModel: GuideViewModel = viewModel()
             val guideSettings by guideViewModel.settings.collectAsState()
             var notificationsAllowed by remember {
@@ -78,8 +102,8 @@ class MainActivity : ComponentActivity() {
                 tvListingsAllowed = granted
                 recommendationsRefresh.value++
             }
-            val suggestedApps = remember { ProviderRegistry.all.associate { it.id to discovery.suggestedApps(it) } }
-            val installedApps = remember {
+            val suggestedApps = remember(appsVersion) { ProviderRegistry.all.associate { it.id to discovery.suggestedApps(it) } }
+            val installedApps = remember(appsVersion) {
                 (discovery.installedApps() + suggestedApps.values.flatten())
                     .distinctBy { it.packageName }
                     .sortedBy { it.label.lowercase() }
@@ -217,6 +241,12 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
         recommendationsRefresh.value++
+        installedAppsRefresh.value++
+    }
+
+    override fun onDestroy() {
+        unregisterReceiver(packageChangeReceiver)
+        super.onDestroy()
     }
 
     private fun openHomeRoleSettings() {
