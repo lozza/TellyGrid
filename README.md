@@ -33,11 +33,15 @@ TellyGrid only hands off to apps you already have. It contains no streams, accou
 ## Setup
 
 1. **Turn on the Home button override.** The first time you open TellyGrid, a setup screen asks you to switch on "TellyGrid Home button override" in Accessibility settings. This makes your remote's Home button open TellyGrid instead of the TV's built-in home screen. It only listens for the Home button and any remote buttons you set up in Settings → Remote buttons.
+   - **Switch flips back off (Android 13 and newer)?** Android blocks accessibility for apps installed outside the Play Store until you allow it. Go to Settings → Apps → TellyGrid, press ⋮ (top right) and choose **Allow restricted settings**, then try the switch again. If your TV has no ⋮ menu, run `adb shell appops set io.github.lozza.tellygrid ACCESS_RESTRICTED_SETTINGS allow` from a computer.
+   - You can also choose **Skip for now** and use TellyGrid without it. The remote's Home button will then open the TV's own home screen. Turn it on later from Settings → Home override.
 2. **Allow updates.** To use in-app updates, allow **Install unknown apps** for TellyGrid when Android asks (or in your TV's Security settings).
 
-## What's new in alpha 8.1
+## What's new in alpha 8.2
 
-Remote buttons: choose what a button on your remote opens (Home, Apps, TV Guide, Favourites or Settings), for example the Settings button opens the Guide. Full notes are on the [release page](https://github.com/lozza/TellyGrid/releases/tag/v0.8.1-alpha.8.1).
+Fixes the setup screen on Android 13 and newer, where the accessibility switch flipped straight back off. The setup screen now explains how to allow it, and has a **Skip for now** button so you can still use TellyGrid without it. Full notes are on the [release page](https://github.com/lozza/TellyGrid/releases/tag/v0.8.2-alpha.8.2).
+
+Alpha 8.1 added remote buttons: choose what a button on your remote opens (Home, Apps, TV Guide, Favourites or Settings), for example the Settings button opens the Guide.
 
 Alpha 8 added Favourites with a record button, in-app updates, a Home button that goes straight to TellyGrid without the stock launcher flashing, a guided setup screen, and an Apps list that refreshes when you install something.
 
