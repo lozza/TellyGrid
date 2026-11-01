@@ -34,11 +34,13 @@ import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
 import io.github.lozza.tellygrid.playback.DiscoveryChannelAccessibilityService
+import io.github.lozza.tellygrid.playback.HomeOverrideAccessibilityService
 import io.github.lozza.tellygrid.playback.NativeTvChannelLauncher
 import io.github.lozza.tellygrid.playback.ReminderScheduler
 import io.github.lozza.tellygrid.playback.TvAppDiscovery
 import io.github.lozza.tellygrid.ui.UnifiedGuideApp
 import io.github.lozza.tellygrid.ui.AccessibilityDisclosureScreen
+import io.github.lozza.tellygrid.ui.HomeOverrideSetupScreen
 
 private const val TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS"
 
@@ -46,6 +48,7 @@ class MainActivity : ComponentActivity() {
     private val discoveryAccessibilityEnabled = mutableStateOf(false)
     private val recommendationsRefresh = mutableStateOf(0)
     private val homePresses = mutableStateOf(0)
+    private val homeOverrideEnabled = mutableStateOf(true)
     private val installedAppsRefresh = mutableStateOf(0)
     private val packageChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -63,6 +66,7 @@ class MainActivity : ComponentActivity() {
         val sampleChannels = SampleGuideRepository().channels()
 
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
+        homeOverrideEnabled.value = HomeOverrideAccessibilityService.isEnabled(this)
 
         ContextCompat.registerReceiver(
             this,
@@ -145,7 +149,14 @@ class MainActivity : ComponentActivity() {
                 guideViewModel.reconcileReminders(notificationsAllowed)
             }
 
-            if (
+            if (!homeOverrideEnabled.value) {
+                // Required setup: without the Home override the remote's Home button opens the
+                // stock launcher. Shown on first install and whenever the TV turns it off again.
+                HomeOverrideSetupScreen(
+                    onOpenAccessibilitySettings = ::openHomeOverrideSettings,
+                    onCheckAgain = ::refreshHomeOverrideEnabled,
+                )
+            } else if (
                 guideSettings.legacyMigrationComplete &&
                 discoveryGestureSupported &&
                 !guideSettings.hasSeenDiscoveryAccessibilityDisclosure
@@ -179,6 +190,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onEnableHomeOverride = {
                         openHomeOverrideSettings()
+                        Unit
                     },
                     onOpenAndroidSettings = ::openAndroidSettings,
                     launcherAppOrder = guideSettings.launcherAppOrder,
@@ -240,6 +252,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         discoveryAccessibilityEnabled.value = DiscoveryChannelAccessibilityService.isEnabled(this)
+        refreshHomeOverrideEnabled()
         recommendationsRefresh.value++
         installedAppsRefresh.value++
     }
@@ -248,6 +261,9 @@ class MainActivity : ComponentActivity() {
         unregisterReceiver(packageChangeReceiver)
         super.onDestroy()
     }
+
+    private fun refreshHomeOverrideEnabled(): Boolean =
+        HomeOverrideAccessibilityService.isEnabled(this).also { homeOverrideEnabled.value = it }
 
     private fun openHomeRoleSettings() {
         if (android.os.Build.VERSION.SDK_INT >= 29) {
@@ -272,17 +288,31 @@ class MainActivity : ComponentActivity() {
         return intents.any { intent -> runCatching { startActivity(intent) }.isSuccess }
     }
 
-    private fun openHomeOverrideSettings() {
-        val intents: List<Intent> = listOf(
-            Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS").apply {
-                data = Uri.parse("package:$packageName")
-            },
+    /**
+     * Opens the screen where the Home override is switched on. TV makers wire Settings up
+     * differently: the service's own details page needs a system-only permission, and on
+     * Google TV builds (e.g. Philips) the standard Accessibility action opens an empty stub
+     * while the real page sits behind ACCESSIBILITY_TV_OEM_LINK. So try each route in turn,
+     * skip stubs, and stop at the first one that actually starts.
+     */
+    private fun openHomeOverrideSettings(): Boolean {
+        val intents = listOfNotNull(
+            Intent("android.settings.ACCESSIBILITY_TV_OEM_LINK"),
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
             Intent(Settings.ACTION_SETTINGS),
+            packageManager.getLeanbackLaunchIntentForPackage("com.android.tv.settings"),
+            packageManager.getLaunchIntentForPackage("com.android.tv.settings"),
         )
-        intents.firstOrNull { intent ->
-            packageManager.resolveActivity(intent, 0) != null
-        }?.let(::startActivity)
+        return intents.any { intent ->
+            val target = packageManager.resolveActivity(intent, 0)?.activityInfo?.packageName
+            target != null && target !in SETTINGS_STUB_PACKAGES &&
+                runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        }
+    }
+
+    private companion object {
+        /** Placeholder activities some TV builds register for Settings actions they don't support. */
+        val SETTINGS_STUB_PACKAGES = setOf("com.google.android.tv.frameworkpackagestubs")
     }
 
 }

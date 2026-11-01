@@ -37,6 +37,16 @@
                 android:mimeType="vnd.android.cursor.item/channel"
                 android:scheme="content" />
         </intent>
+        <!-- Routes into the TV's Accessibility settings for the Home override setup screen. -->
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_TV_OEM_LINK" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.ACCESSIBILITY_SETTINGS" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.SETTINGS" />
+        </intent>
         <package android:name="uk.co.freeview.bbc" />
         <package android:name="uk.co.freeview.itv" />
         <package android:name="uk.co.freeview.ch4_vod" />
