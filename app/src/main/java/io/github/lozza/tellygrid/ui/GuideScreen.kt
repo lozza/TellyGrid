@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -62,6 +63,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.lozza.tellygrid.data.GuideChannel
 import io.github.lozza.tellygrid.data.GuideDensity
+import io.github.lozza.tellygrid.data.favouriteKeyForGuide
 import io.github.lozza.tellygrid.data.GuideFilter
 import io.github.lozza.tellygrid.data.GuideSettings
 import io.github.lozza.tellygrid.data.GuideReminder
@@ -88,6 +90,7 @@ private val FocusRed = Color(0xFFFF365B)
 private val Live = Color(0xFFFFB52E)
 private val stationWidth = 200.dp
 private const val windowMinutes = 120L
+private val RecordDotRed = Color(0xFFE8173A)
 private val zone: ZoneId = ZoneId.systemDefault()
 private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm").withZone(zone)
 private val dateFormatter = DateTimeFormatter.ofPattern("EEE d MMM").withZone(zone)
@@ -106,6 +109,9 @@ fun GuideScreen(
     onTimelineChanged: (Long) -> Unit,
     onSelectionChanged: (String?, String?) -> Unit,
     onProgrammeDetails: (GuideChannel, Programme) -> Unit,
+    onOpenFavourites: () -> Unit = {},
+    favouriteShowKeys: Set<String> = emptySet(),
+    onToggleFavouriteShow: (GuideChannel, Programme) -> Unit = { _, _ -> },
 ) {
     val now by produceState(initialValue = Instant.now()) {
         while (true) {
@@ -218,6 +224,15 @@ fun GuideScreen(
                 ) {
                     onProgrammeDetails(selectedChannel!!, selectedProgramme!!)
                     true
+                } else if (
+                    // The remote's Record button saves the selected show to Favourites, like Sky/Virgin.
+                    event.type == KeyEventType.KeyUp &&
+                    event.key == androidx.compose.ui.input.key.Key.MediaRecord &&
+                    selectedChannel != null &&
+                    selectedProgramme != null
+                ) {
+                    onToggleFavouriteShow(selectedChannel!!, selectedProgramme!!)
+                    true
                 } else {
                     false
                 }
@@ -232,6 +247,7 @@ fun GuideScreen(
             now = now,
             onOpenSetup = onOpenSetup,
             onOpenHome = onOpenHome,
+            onOpenFavourites = onOpenFavourites,
             onOpenSearch = onOpenSearch,
             filterLabel = settings.headerFilterLabel,
             onOpenFilter = onOpenFilter,
@@ -286,6 +302,7 @@ fun GuideScreen(
                         },
                         onClick = { programme -> onProgrammeSelected(channel, programme) },
                         onDetails = { programme -> onProgrammeDetails(channel, programme) },
+                        favouriteShowKeys = favouriteShowKeys,
                     )
                 }
             }
@@ -358,6 +375,7 @@ private fun GuideHeader(
     now: Instant,
     onOpenSetup: () -> Unit,
     onOpenHome: () -> Unit,
+    onOpenFavourites: () -> Unit,
     onOpenSearch: () -> Unit,
     filterLabel: String,
     onOpenFilter: () -> Unit,
@@ -381,6 +399,8 @@ private fun GuideHeader(
             GuideClock(now)
             Spacer(Modifier.weight(1f))
             HeaderButton(text = "HOME", onClick = onOpenHome)
+            Spacer(Modifier.width(9.dp))
+            HeaderButton(text = "FAVOURITES", onClick = onOpenFavourites)
             Spacer(Modifier.width(9.dp))
             HeaderButton(text = "SEARCH", onClick = onOpenSearch)
             Spacer(Modifier.width(9.dp))
@@ -627,6 +647,7 @@ private fun ChannelTimelineRow(
     onFocused: (Programme) -> Unit,
     onClick: (Programme) -> Unit,
     onDetails: (Programme) -> Unit,
+    favouriteShowKeys: Set<String>,
 ) {
     val visible = channel.programmes.filter { it.endsAt > windowStart && it.startsAt < windowEnd }
     var activeProgramme by remember(channel.id, windowStart, visible) { mutableStateOf(visible.firstOrNull()) }
@@ -660,6 +681,7 @@ private fun ChannelTimelineRow(
                 ProgrammeTile(
                     programme = programme,
                     isLive = !now.isBefore(programme.startsAt) && now.isBefore(programme.endsAt),
+                    isFavourite = favouriteKeyForGuide(programme.title) in favouriteShowKeys,
                     focusRequester = gridFocus.takeIf {
                         (channel.id == selectedChannelId && programme.id == selectedProgrammeId) ||
                             (selectedProgrammeId == null && fallbackFocus && index == 0)
@@ -788,6 +810,7 @@ private fun ChannelIdentity(
 private fun ProgrammeTile(
     programme: Programme,
     isLive: Boolean,
+    isFavourite: Boolean,
     focusRequester: FocusRequester?,
     movesLater: Boolean,
     onMoveWindow: (Long) -> Unit,
@@ -819,6 +842,7 @@ private fun ProgrammeTile(
                 }
             }
             .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+            .dpadOkPress(onClick, onLongClick)
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
             .focusable(),
     ) {
@@ -834,15 +858,27 @@ private fun ProgrammeTile(
                 .padding(start = 13.dp, end = 10.dp, top = 5.dp, bottom = 4.dp),
             verticalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(
-                text = programme.title,
-                color = Paper,
-                fontSize = 13.sp,
-                lineHeight = 15.sp,
-                fontWeight = if (focused) FontWeight.Black else FontWeight.SemiBold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row {
+                if (isFavourite) {
+                    // Red record dot, as Sky/Virgin mark a show set to record.
+                    Box(
+                        Modifier
+                            .padding(top = 3.dp, end = 5.dp)
+                            .size(9.dp)
+                            .clip(CircleShape)
+                            .background(RecordDotRed),
+                    )
+                }
+                Text(
+                    text = programme.title,
+                    color = Paper,
+                    fontSize = 13.sp,
+                    lineHeight = 15.sp,
+                    fontWeight = if (focused) FontWeight.Black else FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             Text(
                 text = if (isLive) "● LIVE  ${timeFormatter.format(programme.endsAt)}" else timeFormatter.format(programme.startsAt),
                 color = when {

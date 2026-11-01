@@ -7,6 +7,15 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,6 +93,10 @@ import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.ProviderRegistry
 import io.github.lozza.tellygrid.data.TvPublishedProgramme
 import io.github.lozza.tellygrid.data.BbcIplayerEpisode
+import io.github.lozza.tellygrid.data.FavouriteShow
+import io.github.lozza.tellygrid.data.FavouriteSource
+import io.github.lozza.tellygrid.data.asFavourite
+import io.github.lozza.tellygrid.data.nextAiring
 import io.github.lozza.tellygrid.data.TvPublishedRecommendations
 import io.github.lozza.tellygrid.playback.InstalledTvApp
 import java.time.Instant
@@ -98,6 +111,11 @@ private val LauncherMuted = Color(0xFFB4A9CC)
 private val LauncherSignal = Color(0xFFA88CFF)
 private val LauncherPink = Color(0xFFFF4FB3)
 private val LauncherFocus = Color(0xFFFF365B)
+/** Sky/Virgin-style record dot that marks a show saved to Favourites. */
+private val RecordRed = Color(0xFFE8173A)
+
+/** A show the viewer held OK on: what to save, and how to play it straight away. */
+private data class FavouriteAction(val show: FavouriteShow, val onWatch: () -> Unit)
 
 private data class LauncherShelfItem(
     val channel: GuideChannel,
@@ -149,8 +167,22 @@ fun LauncherHomeScreen(
     onEnableHomeOverride: () -> Unit,
     launcherAppOrder: List<String>,
     hiddenWatchNextPackages: Set<String>,
+    favouriteKeys: Set<String>,
+    onToggleFavourite: (FavouriteShow) -> Unit,
+    onOpenFavourites: () -> Unit,
 ) {
     val now = remember { Instant.now() }
+    // Holding OK (or Menu/Info) on a show opens its record/favourite options.
+    var favouriteAction by remember { mutableStateOf<FavouriteAction?>(null) }
+    favouriteAction?.let { action ->
+        FavouriteActionsDialog(
+            action = action,
+            isFavourite = action.show.key in favouriteKeys,
+            onToggle = { onToggleFavourite(action.show) },
+            onDismiss = { favouriteAction = null },
+        )
+    }
+    val openActions: (FavouriteShow, () -> Unit) -> Unit = { show, watch -> favouriteAction = FavouriteAction(show, watch) }
     val featuredTitle = featuredProgramme?.title ?: "Your guide at a glance"
     val featuredSynopsis = featuredProgramme?.synopsis?.takeIf { it.isNotBlank() }
         ?: "Live channels, apps and everything worth watching in one place."
@@ -235,7 +267,7 @@ fun LauncherHomeScreen(
                         FeaturedHero(featuredChannel, featuredProgramme, featuredTitle, featuredSynopsis, guideStatus, onOpenGuide)
                     }
                 } else {
-                    RotatingHero(heroSlides.orEmpty(), Modifier.fillMaxSize())
+                    RotatingHero(heroSlides.orEmpty(), favouriteKeys, openActions, Modifier.fillMaxSize())
                     if (streamingApps.isNotEmpty()) Column(
                         Modifier.align(Alignment.BottomStart).padding(start = 50.dp, end = 50.dp, bottom = 20.dp),
                     ) {
@@ -247,7 +279,7 @@ fun LauncherHomeScreen(
                     }
                 }
                 CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(shadow = TextOverArtwork)) {
-                LauncherTopBar(selected = "HOME", onHome = {}, onApps = onOpenApps, onGuide = onOpenGuide, onSettings = onOpenSettings)
+                LauncherTopBar(selected = "HOME", onHome = {}, onApps = onOpenApps, onGuide = onOpenGuide, onFavourites = onOpenFavourites, onSettings = onOpenSettings)
                 }
             }
         }
@@ -276,7 +308,7 @@ fun LauncherHomeScreen(
                 Spacer(Modifier.height(14.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     items(publishedWatchNext) { recommendation ->
-                        PublishedRecommendationCard(recommendation, installedByPackage.getValue(recommendation.packageName), onOpenPublishedProgramme)
+                        PublishedRecommendationCard(recommendation, installedByPackage.getValue(recommendation.packageName), onOpenPublishedProgramme, favouriteKeys, onToggleFavourite, openActions)
                     }
                 }
             }
@@ -289,12 +321,16 @@ fun LauncherHomeScreen(
                 Spacer(Modifier.height(14.dp))
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                     items(bbcIplayerEpisodes, key = { it.id }) { episode ->
+                        val favourite = episode.asFavourite()
                         RecommendationCard(
                             title = episode.title,
                             caption = episode.subtitle,
                             artworkUri = episode.artworkUri,
                             appLabel = "BBC iPlayer",
                             onClick = { onOpenBbcIplayerEpisode(episode) },
+                            favourite = favourite.key in favouriteKeys,
+                            onOptions = { openActions(favourite) { onOpenBbcIplayerEpisode(episode) } },
+                            onRecord = { onToggleFavourite(favourite) },
                         )
                     }
                 }
@@ -310,7 +346,7 @@ fun LauncherHomeScreen(
                     Spacer(Modifier.height(14.dp))
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                         items(recommendations) { recommendation ->
-                            PublishedRecommendationCard(recommendation, app, onOpenPublishedProgramme)
+                            PublishedRecommendationCard(recommendation, app, onOpenPublishedProgramme, favouriteKeys, onToggleFavourite, openActions)
                         }
                     }
                 }
@@ -318,17 +354,17 @@ fun LauncherHomeScreen(
         }
         if (watchNextItems.isNotEmpty()) item {
             HomeSection {
-                LauncherShelf("ON NOW", "", watchNextItems, onWatchProgramme)
+                LauncherShelf("ON NOW", "", watchNextItems, onWatchProgramme, favouriteKeys, onToggleFavourite, openActions)
             }
         }
         if (seriesItems.isNotEmpty()) item {
             HomeSection {
-                LauncherShelf("RECOMMENDED SERIES", "", seriesItems, onWatchProgramme)
+                LauncherShelf("RECOMMENDED SERIES", "", seriesItems, onWatchProgramme, favouriteKeys, onToggleFavourite, openActions)
             }
         }
         if (movieItems.isNotEmpty()) item {
             HomeSection {
-                LauncherShelf("RECOMMENDED MOVIES", "", movieItems, onWatchProgramme)
+                LauncherShelf("RECOMMENDED MOVIES", "", movieItems, onWatchProgramme, favouriteKeys, onToggleFavourite, openActions)
             }
         }
         providerShelves.forEach { (providerId, app, items) ->
@@ -342,7 +378,7 @@ fun LauncherHomeScreen(
                         ?.displayName
                         ?: app.label
                     val shelfName = if (providerId == ProviderId.NOW) "NOW TV" else "${providerName.uppercase()} LIVE TV"
-                    LauncherShelf(shelfName, "", items, onWatchProgramme)
+                    LauncherShelf(shelfName, "", items, onWatchProgramme, favouriteKeys, onToggleFavourite, openActions)
                 }
             }
         }
@@ -393,13 +429,20 @@ private fun PublishedRecommendationCard(
     recommendation: TvPublishedProgramme,
     app: InstalledTvApp,
     onOpenProgramme: (TvPublishedProgramme) -> Unit,
+    favouriteKeys: Set<String>,
+    onToggleFavourite: (FavouriteShow) -> Unit,
+    onOpenActions: (FavouriteShow, () -> Unit) -> Unit,
 ) {
+    val favourite = recommendation.asFavourite(app.label)
     RecommendationCard(
         title = recommendation.title,
         caption = null,
         artworkUri = recommendation.artworkUri,
         appLabel = app.label,
         onClick = { onOpenProgramme(recommendation) },
+        favourite = favourite.key in favouriteKeys,
+        onOptions = { onOpenActions(favourite) { onOpenProgramme(recommendation) } },
+        onRecord = { onToggleFavourite(favourite) },
     )
 }
 
@@ -410,14 +453,19 @@ private fun RecommendationCard(
     artworkUri: String?,
     appLabel: String,
     onClick: () -> Unit,
+    favourite: Boolean = false,
+    onOptions: (() -> Unit)? = null,
+    onRecord: (() -> Unit)? = null,
+    modifier: Modifier = Modifier.width(220.dp),
+    liveBadge: Boolean = false,
+    captionColor: Color = LauncherMuted,
 ) {
     var focused by remember { mutableStateOf(false) }
     val image by rememberRemoteImage(artworkUri, maxDimension = 480)
     Column(
-        modifier = Modifier
-            .width(220.dp)
+        modifier = modifier
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .showCardClicks(onClick, onOptions, onRecord)
             .focusable(),
     ) {
         Box(
@@ -428,11 +476,15 @@ private fun RecommendationCard(
         ) {
             if (image != null) Image(image!!, null, Modifier.fillMaxSize(), alignment = Alignment.TopCenter, contentScale = ContentScale.Crop)
             else Text(title, color = LauncherPaper, fontSize = 22.sp, lineHeight = 24.sp, fontWeight = FontWeight.Black, maxLines = 2, modifier = Modifier.align(Alignment.CenterStart).padding(16.dp))
-            Text(appLabel, color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).background(LauncherInk.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 4.dp))
+            Row(Modifier.align(Alignment.TopStart)) {
+                Text(appLabel, color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(LauncherInk.copy(alpha = 0.72f)).padding(horizontal = 7.dp, vertical = 4.dp))
+                if (liveBadge) Text("ON NOW", color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.background(RecordRed).padding(horizontal = 7.dp, vertical = 4.dp))
+            }
+            if (favourite) RecordDot(Modifier.align(Alignment.TopEnd).padding(8.dp))
         }
         Text(title, color = LauncherPaper, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
         if (caption != null) {
-            Text(caption, color = LauncherMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(caption, color = captionColor, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -472,6 +524,7 @@ fun LauncherAppsScreen(
     onToggleWatchNextApp: (String) -> Unit,
     onLaunchApp: (InstalledTvApp) -> Unit,
     onOpenGuide: () -> Unit,
+    onOpenFavourites: () -> Unit,
     onOpenSettings: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -485,7 +538,7 @@ fun LauncherAppsScreen(
     val homePackageNames = orderedHomeApps.map { it.packageName }.toSet()
     val availableHomeApps = orderedApps.filterNot { it.packageName in homePackageNames }
     Column(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(LauncherInk, Color(0xFF21162E))))) {
-        LauncherTopBar(selected = "APPS", onHome = onBack, onApps = {}, onGuide = onOpenGuide, onSettings = onOpenSettings)
+        LauncherTopBar(selected = "APPS", onHome = onBack, onApps = {}, onGuide = onOpenGuide, onFavourites = onOpenFavourites, onSettings = onOpenSettings)
         Column(Modifier.weight(1f).padding(horizontal = 50.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             LauncherTab("ALL APPS", selected = !showHomeSettings, onClick = { showHomeSettings = false }, requestInitialFocus = true)
@@ -625,6 +678,7 @@ private data class HeroSlide(
     val logoUri: String?,
     val action: String,
     val onSelect: () -> Unit,
+    val favourite: FavouriteShow? = null,
 )
 
 /**
@@ -649,6 +703,7 @@ private fun buildHeroSlides(
         logoUri = null,
         action = "OPEN IN ${app.label.uppercase()}  ›",
         onSelect = { onOpenPublishedProgramme(this) },
+        favourite = asFavourite(app.label),
     )
     val groups = mutableListOf<MutableList<HeroSlide>>()
     publishedRecommendations.preview
@@ -667,6 +722,7 @@ private fun buildHeroSlides(
             logoUri = null,
             action = "WATCH ON IPLAYER  ›",
             onSelect = { onOpenBbcIplayerEpisode(episode) },
+            favourite = episode.asFavourite(),
         )
     }.takeIf { it.isNotEmpty() }?.let { groups += it.toMutableList() }
     publishedRecommendations.watchNext
@@ -684,6 +740,7 @@ private fun buildHeroSlides(
                 logoUri = channel.logoUri,
                 action = "WATCH LIVE  ›",
                 onSelect = { onWatchProgramme(channel, programme) },
+                favourite = programme.asFavourite(channel),
             ),
         )
     }
@@ -695,7 +752,12 @@ private fun buildHeroSlides(
 }
 
 @Composable
-private fun RotatingHero(slides: List<HeroSlide>, modifier: Modifier = Modifier) {
+private fun RotatingHero(
+    slides: List<HeroSlide>,
+    favouriteKeys: Set<String>,
+    onOpenActions: (FavouriteShow, () -> Unit) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     var index by remember { mutableIntStateOf(0) }
     var shownTitle by remember { mutableStateOf<String?>(null) }
     // When the list changes (e.g. iPlayer arrives), stay on the title already showing.
@@ -760,7 +822,14 @@ private fun RotatingHero(slides: List<HeroSlide>, modifier: Modifier = Modifier)
                 .width(535.dp)
                 .padding(start = 56.dp, top = 114.dp),
         ) {
-            Text(slide.label, color = LauncherPaper, fontSize = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.5.sp, maxLines = 1)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(slide.label, color = LauncherPaper, fontSize = 14.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.5.sp, maxLines = 1)
+                if (slide.favourite?.let { it.key in favouriteKeys } == true) {
+                    Spacer(Modifier.width(12.dp))
+                    RecordDot()
+                    Text("IN FAVOURITES", color = LauncherPaper, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, modifier = Modifier.padding(start = 6.dp))
+                }
+            }
             Spacer(Modifier.height(12.dp))
             Text(slide.title, color = LauncherPaper, fontSize = 34.sp, lineHeight = 37.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(9.dp))
@@ -777,7 +846,11 @@ private fun RotatingHero(slides: List<HeroSlide>, modifier: Modifier = Modifier)
                     }
                 },
             ) {
-                LauncherAction(slide.action, { slide.onSelect() })
+                LauncherAction(
+                    slide.action,
+                    { slide.onSelect() },
+                    onLongClick = slide.favourite?.let { favourite -> { onOpenActions(favourite) { slide.onSelect() } } },
+                )
             }
         } }
         if (slides.size > 1) Row(
@@ -887,20 +960,31 @@ private fun LauncherShelf(
     subtitle: String,
     items: List<LauncherShelfItem>,
     onWatch: (GuideChannel, Programme) -> Unit,
+    favouriteKeys: Set<String>,
+    onToggleFavourite: (FavouriteShow) -> Unit,
+    onOpenActions: (FavouriteShow, () -> Unit) -> Unit,
 ) {
     Column {
         SectionHeading(title, subtitle)
         Spacer(Modifier.height(14.dp))
         LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
             items(items) { item ->
-                ShelfCard(item, onClick = { onWatch(item.channel, item.programme) })
+                val favourite = item.programme.asFavourite(item.channel)
+                val watch = { onWatch(item.channel, item.programme) }
+                ShelfCard(
+                    item,
+                    onClick = watch,
+                    favourite = favourite.key in favouriteKeys,
+                    onOptions = { onOpenActions(favourite, watch) },
+                    onRecord = { onToggleFavourite(favourite) },
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ShelfCard(item: LauncherShelfItem, onClick: () -> Unit) {
+private fun ShelfCard(item: LauncherShelfItem, onClick: () -> Unit, favourite: Boolean, onOptions: () -> Unit, onRecord: () -> Unit) {
     val image by rememberRemoteImage(item.programme.imageUri, maxDimension = 480)
     val logo by rememberRemoteImage(item.channel.logoUri, maxDimension = 320)
     var focused by remember { mutableStateOf(false) }
@@ -908,7 +992,7 @@ private fun ShelfCard(item: LauncherShelfItem, onClick: () -> Unit) {
         modifier = Modifier
             .width(220.dp)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .showCardClicks(onClick, onOptions, onRecord)
             .focusable(),
     ) {
         Box(Modifier.fillMaxWidth().height(124.dp).clip(RoundedCornerShape(6.dp)).background(Color(0xFF33256D)).border(3.dp, if (focused) LauncherFocus else Color.Transparent, RoundedCornerShape(6.dp))) {
@@ -918,6 +1002,7 @@ private fun ShelfCard(item: LauncherShelfItem, onClick: () -> Unit) {
             item.app?.let { app ->
                 Text(app.label, color = LauncherPaper, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopStart).background(LauncherInk.copy(alpha = 0.75f)).padding(horizontal = 7.dp, vertical = 4.dp))
             }
+            if (favourite) RecordDot(Modifier.align(Alignment.TopEnd).padding(8.dp))
         }
         Text(item.programme.title, color = LauncherPaper, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 6.dp))
         Text(item.channel.name, color = LauncherMuted, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -958,7 +1043,7 @@ private fun SectionHeading(title: String, subtitle: String = "") {
 
 /** Logo, main menu and clock: identical on Home and Apps so the menu never moves between them. */
 @Composable
-private fun LauncherTopBar(selected: String, onHome: () -> Unit, onApps: () -> Unit, onGuide: () -> Unit, onSettings: () -> Unit) {
+private fun LauncherTopBar(selected: String, onHome: () -> Unit, onApps: () -> Unit, onGuide: () -> Unit, onFavourites: () -> Unit, onSettings: () -> Unit) {
     CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.copy(shadow = TextOverArtwork)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -970,6 +1055,7 @@ private fun LauncherTopBar(selected: String, onHome: () -> Unit, onApps: () -> U
             LauncherNavItem("HOME", selected = selected == "HOME", onClick = onHome)
             LauncherNavItem("APPS", selected = selected == "APPS", onClick = onApps)
             LauncherNavItem("GUIDE", selected = selected == "GUIDE", onClick = onGuide)
+            LauncherNavItem("FAVOURITES", selected = selected == "FAVOURITES", onClick = onFavourites)
             LauncherNavItem("SETTINGS", selected = selected == "SETTINGS", onClick = onSettings)
             Spacer(Modifier.weight(1f))
             Text(LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")), color = LauncherPaper, fontSize = 18.sp)
@@ -1074,7 +1160,7 @@ private fun LauncherIconButton(icon: ImageVector, description: String, enabled: 
 }
 
 @Composable
-private fun LauncherAction(label: String, onClick: () -> Unit, compact: Boolean = false) {
+private fun LauncherAction(label: String, onClick: () -> Unit, compact: Boolean = false, onLongClick: (() -> Unit)? = null) {
     var focused by remember { mutableStateOf(false) }
     Text(
         label,
@@ -1090,8 +1176,214 @@ private fun LauncherAction(label: String, onClick: () -> Unit, compact: Boolean 
             .clip(RoundedCornerShape(4.dp))
             .background(if (focused) LauncherFocus else LauncherQuiet)
             .onFocusChanged { focused = it.isFocused }
-            .clickable(onClick = onClick)
+            .showCardClicks(onClick, onLongClick, null)
             .focusable()
             .then(if (compact) Modifier.padding(top = 7.dp) else Modifier.padding(horizontal = 15.dp, vertical = 9.dp)),
     )
+}
+
+/**
+ * OK opens a show; holding OK, or pressing Menu/Info, opens its options; the remote's
+ * Record button (where it has one) adds or removes it from Favourites straight away.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+private fun Modifier.showCardClicks(onClick: () -> Unit, onOptions: (() -> Unit)?, onRecord: (() -> Unit)?): Modifier =
+    onKeyEvent { event ->
+        if (event.type != KeyEventType.KeyUp) return@onKeyEvent false
+        when (event.key) {
+            Key.MediaRecord -> (onRecord ?: onOptions)?.let { it(); true } ?: false
+            Key.Menu, Key.Info -> onOptions?.let { it(); true } ?: false
+            else -> false
+        }
+    }.dpadOkPress(onClick, onOptions).combinedClickable(onClick = onClick, onLongClick = onOptions)
+
+@Composable
+private fun RecordDot(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .size(14.dp)
+            .clip(CircleShape)
+            .background(RecordRed)
+            .border(2.dp, LauncherPaper.copy(alpha = 0.9f), CircleShape),
+    )
+}
+
+/** Virgin/Sky-style options for one show: watch it now, or save it to Favourites. */
+@Composable
+private fun FavouriteActionsDialog(
+    action: FavouriteAction,
+    isFavourite: Boolean,
+    onToggle: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Column(
+            Modifier
+                .width(520.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(LauncherPanel)
+                .border(1.dp, LauncherQuiet, RoundedCornerShape(8.dp))
+                .padding(28.dp),
+        ) {
+            action.show.subtitle?.let {
+                Text(it.uppercase(), color = LauncherMuted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, maxLines = 1)
+                Spacer(Modifier.height(6.dp))
+            }
+            Text(action.show.title, color = LauncherPaper, fontSize = 24.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (isFavourite) "Saved in Favourites." else "Add it to Favourites to find it again from the top menu.",
+                color = LauncherMuted, fontSize = 12.sp,
+            )
+            Spacer(Modifier.height(22.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DialogButton(if (isFavourite) "REMOVE FROM FAVOURITES" else "ADD TO FAVOURITES", recordDot = !isFavourite, initialFocus = true) {
+                    onToggle()
+                    onDismiss()
+                }
+                DialogButton("WATCH NOW") {
+                    onDismiss()
+                    action.onWatch()
+                }
+                DialogButton("CANCEL", onClick = onDismiss)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DialogButton(label: String, recordDot: Boolean = false, initialFocus: Boolean = false, onClick: () -> Unit) {
+    var focused by remember { mutableStateOf(false) }
+    val requester = remember { FocusRequester() }
+    if (initialFocus) LaunchedEffect(Unit) { delay(50); runCatching { requester.requestFocus() } }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(4.dp))
+            .background(if (focused) LauncherFocus else LauncherQuiet)
+            .focusRequester(requester)
+            .onFocusChanged { focused = it.isFocused }
+            // The OK held to open this box keeps repeating; only a fresh press may click.
+            .dpadOkPress(onClick, onLongClick = {})
+            .clickable(onClick = onClick)
+            .focusable()
+            .padding(horizontal = 15.dp, vertical = 10.dp),
+    ) {
+        if (recordDot) {
+            RecordDot(Modifier.size(12.dp))
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(label, color = LauncherPaper, fontSize = 11.sp, fontWeight = FontWeight.Black, maxLines = 1, softWrap = false)
+    }
+}
+
+/** The Favourites tab: every show saved with the record option, newest first. */
+@Composable
+fun LauncherFavouritesScreen(
+    favourites: List<FavouriteShow>,
+    guideChannels: List<GuideChannel>,
+    installedApps: List<InstalledTvApp>,
+    status: String?,
+    onOpenFavourite: (FavouriteShow) -> Unit,
+    onRemoveFavourite: (FavouriteShow) -> Unit,
+    onOpenHome: () -> Unit,
+    onOpenApps: () -> Unit,
+    onOpenGuide: () -> Unit,
+    onOpenSettings: () -> Unit,
+) {
+    BackHandler(onBack = onOpenHome)
+    val now = remember(guideChannels) { Instant.now() }
+    val appsByPackage = remember(installedApps) { installedApps.associateBy { it.packageName } }
+    var favouriteAction by remember { mutableStateOf<FavouriteAction?>(null) }
+    favouriteAction?.let { action ->
+        FavouriteActionsDialog(
+            action = action,
+            isFavourite = favourites.any { it.key == action.show.key },
+            onToggle = { onRemoveFavourite(action.show) },
+            onDismiss = { favouriteAction = null },
+        )
+    }
+    val firstCard = remember { FocusRequester() }
+    LaunchedEffect(favourites.isNotEmpty()) {
+        if (favourites.isNotEmpty()) { delay(150); runCatching { firstCard.requestFocus() } }
+    }
+    Column(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(LauncherInk, Color(0xFF21162E))))) {
+        LauncherTopBar(selected = "FAVOURITES", onHome = onOpenHome, onApps = onOpenApps, onGuide = onOpenGuide, onFavourites = {}, onSettings = onOpenSettings)
+        Column(Modifier.weight(1f).padding(horizontal = 50.dp)) {
+            SectionHeading("FAVOURITES", "Hold OK on any show on Home or in the Guide to add it here")
+            Spacer(Modifier.height(16.dp))
+            if (favourites.isEmpty()) {
+                Column(Modifier.padding(top = 40.dp).fillMaxWidth(0.7f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RecordDot()
+                        Spacer(Modifier.width(10.dp))
+                        Text("Nothing saved yet", color = LauncherPaper, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Spotted something you want to watch, or a show you love? Hold OK on it (or press Record on your remote) " +
+                            "on Home or in the TV Guide, then choose Add to Favourites. It will appear here with a red record dot.",
+                        color = LauncherMuted, fontSize = 14.sp, lineHeight = 20.sp,
+                    )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(top = 4.dp, bottom = 60.dp),
+                ) {
+                    itemsIndexed(favourites, key = { _, show -> show.key }) { index, show ->
+                        val airing = remember(show, guideChannels) { show.nextAiring(guideChannels, now) }
+                        val app = show.packageName?.let(appsByPackage::get)
+                        val badge = when (show.source) {
+                            FavouriteSource.APP -> app?.label ?: show.subtitle ?: "APP"
+                            FavouriteSource.BBC_IPLAYER -> "BBC iPlayer"
+                            FavouriteSource.GUIDE -> airing?.channel?.name ?: show.channelName ?: "TV GUIDE"
+                        }
+                        val caption = when (show.source) {
+                            FavouriteSource.APP -> if (app == null) "App not installed" else "Open in ${app.label}"
+                            FavouriteSource.BBC_IPLAYER -> "Watch on BBC iPlayer"
+                            FavouriteSource.GUIDE -> when {
+                                airing == null -> "Not in the guide right now"
+                                airing.onNow -> "On now until ${timeOfDay(airing.programme.endsAt)}"
+                                else -> "Next: ${dayAndTime(airing.programme.startsAt, now)}"
+                            }
+                        }
+                        RecommendationCard(
+                            title = show.title,
+                            caption = caption,
+                            artworkUri = show.artworkUri ?: airing?.programme?.imageUri,
+                            appLabel = badge,
+                            onClick = { onOpenFavourite(show) },
+                            favourite = true,
+                            onOptions = { favouriteAction = FavouriteAction(show) { onOpenFavourite(show) } },
+                            modifier = Modifier.fillMaxWidth().then(if (index == 0) Modifier.focusRequester(firstCard) else Modifier),
+                            liveBadge = airing?.onNow == true,
+                            captionColor = if (airing?.onNow == true) LauncherPaper else LauncherMuted,
+                        )
+                    }
+                }
+            }
+            if (!status.isNullOrBlank()) {
+                Text(status, color = LauncherMuted, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(vertical = 14.dp))
+            }
+        }
+    }
+}
+
+private fun timeOfDay(instant: Instant): String =
+    DateTimeFormatter.ofPattern("HH:mm").withZone(java.time.ZoneId.systemDefault()).format(instant)
+
+private fun dayAndTime(instant: Instant, now: Instant): String {
+    val zone = java.time.ZoneId.systemDefault()
+    val day = instant.atZone(zone).toLocalDate()
+    val today = now.atZone(zone).toLocalDate()
+    val dayLabel = when (day) {
+        today -> "Today"
+        today.plusDays(1) -> "Tomorrow"
+        else -> DateTimeFormatter.ofPattern("EEE d MMM").withZone(zone).format(instant)
+    }
+    return "$dayLabel ${timeOfDay(instant)}"
 }
