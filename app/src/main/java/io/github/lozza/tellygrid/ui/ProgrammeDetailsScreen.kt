@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -42,6 +44,8 @@ fun ProgrammeDetailsScreen(
     channel: GuideChannel,
     programme: Programme,
     isFavourite: Boolean,
+    isFavouriteShow: Boolean,
+    onToggleFavouriteShow: () -> Unit,
     hasReminder: Boolean,
     canRemind: Boolean,
     notificationsAllowed: Boolean,
@@ -73,9 +77,11 @@ fun ProgrammeDetailsScreen(
             modifier = Modifier.fillMaxWidth(0.76f),
         )
         Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
             DetailAction(label = detailWatchLabel(channel, programme), primary = true, initialFocus = true, onClick = onWatch)
-            DetailAction(label = if (isFavourite) "REMOVE FAVOURITE" else "ADD FAVOURITE", onClick = onToggleFavourite)
+            // The "record" option: saves this show (any airing of it) to the Favourites tab.
+            DetailAction(label = if (isFavouriteShow) "REMOVE FROM FAVOURITES" else "● ADD TO FAVOURITES", onClick = onToggleFavouriteShow)
+            DetailAction(label = if (isFavourite) "UNFAVOURITE CHANNEL" else "FAVOURITE CHANNEL", onClick = onToggleFavourite)
             if (canRemind) {
                 DetailAction(label = if (hasReminder) "CANCEL REMINDER" else "SET REMINDER", onClick = onToggleReminder)
                 if (!notificationsAllowed) {

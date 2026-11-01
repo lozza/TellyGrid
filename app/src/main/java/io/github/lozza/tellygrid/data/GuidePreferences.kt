@@ -78,6 +78,8 @@ data class GuideSettings(
     val hasSeenDiscoveryAccessibilityDisclosure: Boolean = false,
     val legacyMigrationComplete: Boolean = false,
     val reminders: Set<GuideReminder> = emptySet(),
+    /** Shows saved to the Favourites tab, newest first. */
+    val favouriteShows: List<FavouriteShow> = emptyList(),
 )
 
 /**
@@ -101,6 +103,7 @@ class GuidePreferences(private val context: Context) {
         val reminders = stringSetPreferencesKey("programme_reminders_v1")
         val launcherAppOrder = stringPreferencesKey("launcher_app_order")
         val hiddenWatchNextPackages = stringSetPreferencesKey("hidden_watch_next_packages")
+        val favouriteShows = stringSetPreferencesKey("favourite_shows_v1")
 
         fun providerSelection(providerId: ProviderId) =
             stringPreferencesKey("provider_selection_${providerId.name.lowercase()}")
@@ -134,6 +137,10 @@ class GuidePreferences(private val context: Context) {
                     values[Keys.discoveryAccessibilityDisclosure] ?: false,
                 legacyMigrationComplete = values[Keys.legacyMigrationComplete] ?: false,
                 reminders = values[Keys.reminders].orEmpty().mapNotNull(::decodeReminder).toSet(),
+                favouriteShows = values[Keys.favouriteShows].orEmpty()
+                    .mapNotNull(::decodeFavouriteShow)
+                    .distinctBy { it.key }
+                    .sortedByDescending { it.addedAtMillis },
             )
         }
 
@@ -171,6 +178,17 @@ class GuidePreferences(private val context: Context) {
     suspend fun toggleFavourite(channelId: String) = context.guideDataStore.edit { values ->
         values[Keys.favourites] = values[Keys.favourites].orEmpty().toMutableSet().apply {
             if (!add(channelId)) remove(channelId)
+        }
+    }
+
+    /** Adds the show to Favourites, or removes it if it is already there. */
+    suspend fun toggleFavouriteShow(show: FavouriteShow) = context.guideDataStore.edit { values ->
+        val saved = values[Keys.favouriteShows].orEmpty()
+        val existing = saved.filter { decodeFavouriteShow(it)?.key == show.key }.toSet()
+        values[Keys.favouriteShows] = if (existing.isNotEmpty()) {
+            saved - existing
+        } else {
+            saved + encodeFavouriteShow(show.copy(addedAtMillis = System.currentTimeMillis()))
         }
     }
 
@@ -282,6 +300,7 @@ class GuideViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleFavourite(channelId: String) = viewModelScope.launch { preferences.toggleFavourite(channelId) }
+    fun toggleFavouriteShow(show: FavouriteShow) = viewModelScope.launch { preferences.toggleFavouriteShow(show) }
     fun toggleHidden(channelId: String) = viewModelScope.launch { preferences.toggleHidden(channelId) }
     fun setFilter(filter: GuideFilter) = viewModelScope.launch { preferences.setFilter(filter) }
     fun setProviderFilter(providerId: ProviderId?) = viewModelScope.launch {
