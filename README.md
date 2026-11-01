@@ -24,15 +24,20 @@ This is an early test version, so far tested on a Philips Android 11 Freeview Pl
 - **Home** shows a rotating banner and rows of recommendations published by your apps (Netflix, Disney+, Prime Video, Jellyfin, Stremio, Pluto TV and more), plus BBC iPlayer's most popular episodes. Picking one opens that exact title.
 - **Watch next** lists what you were watching most recently, and you choose which apps can add to it.
 - **Guide** is a time-grid guide for Freeview, NOW, discovery+, Pluto TV and TNT Sports channels. Selecting a channel opens it live, using the TV's tuner for Freeview.
-- **Apps** lists everything installed, and lets you choose and order the apps on Home.
+- **Favourites** works like a Sky or Virgin record list. Hold OK on a show, or press Record, to save it. Guide favourites follow the series on any channel.
+- **Apps** lists everything installed, updates itself when you add or remove an app, and lets you choose and order the apps on Home.
+- **Updates** come straight from Settings → App updates, with no need to sideload each new version.
 
 TellyGrid only hands off to apps you already have. It contains no streams, accounts or tokens.
 
-### Make sure you go into Accessibility settings to force the Launcher as the main app. It will stop the Android TV default from loading. Home and Back buttons will then work as expected.
+## Setup
 
-## What's new in alpha 7
+1. **Turn on the Home button override.** The first time you open TellyGrid, a setup screen asks you to switch on "TellyGrid Home button override" in Accessibility settings. This makes your remote's Home button open TellyGrid instead of the TV's built-in home screen. It only listens for the Home button.
+2. **Allow updates.** To use in-app updates, allow **Install unknown apps** for TellyGrid when Android asks (or in your TV's Security settings).
 
-A new rotating Home banner, Watch next that stays up to date, faster artwork, direct links for Pluto TV and 12 discovery+ channels, a BBC iPlayer row, a new font and logo, and many remote-control fixes. Full notes are on the [release page](https://github.com/lozza/TellyGrid/releases/tag/v0.7.0-alpha.7).
+## What's new in alpha 8
+
+Favourites with a record button, in-app updates, a Home button that goes straight to TellyGrid without the stock launcher flashing, a guided setup screen, and an Apps list that refreshes when you install something. Full notes are on the [release page](https://github.com/lozza/TellyGrid/releases/tag/v0.8.0-alpha.8).
 
 ## Build it yourself
 

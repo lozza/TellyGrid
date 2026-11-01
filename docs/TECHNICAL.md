@@ -95,6 +95,60 @@ chosen installed app when Android reports that app can handle it; app-home launc
 the fallback. Exact tuning on other manufacturers remains device dependent and needs
 physical-TV testing.
 
+## Launcher features
+
+### Home button and the setup screen
+
+Android TV keeps the stock launcher as the system Home on many TVs, including the
+reference Philips. TellyGrid therefore uses an accessibility service, "TellyGrid Home
+button override", which only listens for the remote's Home key and brings TellyGrid to
+the front (`playback/HomeOverrideAccessibilityService.kt`). Without it, Home opens the
+stock launcher.
+
+Since alpha 8 the service is required. On first launch, and whenever the TV turns it
+off again, `ui/HomeOverrideSetupScreen.kt` blocks the launcher with step-by-step
+instructions and an "Open Accessibility settings" button. TellyGrid never switches the
+service on itself. If the TV kills TellyGrid's process, the first Home press afterwards
+can briefly show the stock launcher.
+
+The older discovery+ accessibility workaround has been removed; discovery+ channels
+open through their direct links.
+
+### Favourites
+
+The FAVOURITES tab works like a Sky or Virgin "record" list. Hold OK (or press Menu
+or Info) on a Home card or the banner to choose Add to Favourites or Watch now, or press
+the remote's Record key to toggle a favourite directly. In the Guide, programme details
+have an "Add to Favourites" button. Saved shows carry a red dot. Guide favourites match
+by title on any channel, like a series link. Storage is the DataStore key
+`favourite_shows_v1` (`data/FavouriteShows.kt`). D-pad long-press is detected in
+`ui/DpadLongPress.kt`, because Compose's long-click does not fire for OK on every TV.
+
+### Apps list
+
+The Apps page lists installed TV apps and refreshes itself when an app is installed,
+updated or removed, so new apps appear without restarting TellyGrid.
+
+### In-app updates
+
+Settings → App updates checks GitHub Releases (`update/AppUpdater.kt`). It reads the
+`/releases` list, including pre-releases, picks the newest non-draft release with an
+`.apk` asset, compares its tag with the installed `versionName`, then downloads the
+APK and opens Android's package installer. TellyGrid also checks quietly at launch,
+at most every six hours, and shows one notice per new version.
+
+Android only installs the update when **Install unknown apps** is allowed for
+TellyGrid (TV Settings → Apps → Security & restrictions, or Device Preferences →
+Security, depending on the TV). If it is off, TellyGrid opens that setting for the user
+before installing.
+
+Every release must:
+
+- increase `versionCode` and `versionName` in `app/build.gradle.kts`;
+- be tagged `v<versionName>`, for example `v0.8.0-alpha.8`;
+- attach an APK signed with the same key as earlier releases, otherwise Android
+  refuses to install it over the existing app.
+
 ## UX blueprint
 
 The app uses a compact two-hour broadcast timeline rather than a stacked card list:
@@ -152,9 +206,10 @@ Important boundaries:
 - Treat direct playback as a server-authorised capability. Media3 supports Widevine,
   but technical DRM support does not grant content rights.
 - Authentication stays inside provider apps. Do not collect provider credentials.
-- Accessibility services (the Home button override) must remain optional, narrowly
-  scoped and fully disclosed. Do not enable them programmatically or expand them into
-  general screen inspection.
+- The Home button override is the only accessibility service. It is required, and
+  TellyGrid shows a setup screen until the user turns it on themselves. It must stay
+  narrowly scoped to the Home key and fully disclosed. Do not enable it
+  programmatically or expand it into general screen inspection.
 
 ## Project map
 
@@ -166,6 +221,9 @@ Important boundaries:
 - `ui/NativeTvPlayerScreen.kt`: in-app Android `TvView`; Back resets it and restores the guide.
 - `playback/AppHandoffLauncher.kt`: supported channel link → selected/detected app fallback.
 - `ui/ProviderSetupScreen.kt`: D-pad provider-to-app mapping for OEM/Freeview Play builds.
+- `ui/HomeOverrideSetupScreen.kt`: required setup screen for the Home button override.
+- `data/FavouriteShows.kt`: saved Favourites.
+- `update/AppUpdater.kt`: in-app updates from GitHub Releases.
 - `ui/GuideScreen.kt`: D-pad-first Compose guide.
 - `ui/PlayerScreen.kt`: Media3 HLS/DASH/Widevine entry point for licensed streams.
 - `PlaybackSafetyTest.kt`: prevents sample broadcasters becoming direct streams.
