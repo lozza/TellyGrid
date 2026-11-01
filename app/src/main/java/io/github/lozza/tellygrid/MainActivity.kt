@@ -41,6 +41,7 @@ private const val TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS"
 class MainActivity : ComponentActivity() {
     private val discoveryAccessibilityEnabled = mutableStateOf(false)
     private val recommendationsRefresh = mutableStateOf(0)
+    private val homePresses = mutableStateOf(0)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -200,9 +201,16 @@ class MainActivity : ComponentActivity() {
                     onResetChannelOrder = { guideViewModel.setOrder(emptyList()) },
                     onGuideDensityChanged = guideViewModel::setDensity,
                     onResetChannelManagement = guideViewModel::resetChannelManagement,
+                    homePresses = homePresses.value,
                 )
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        if (intent.hasCategory(Intent.CATEGORY_HOME)) homePresses.value++
     }
 
     override fun onResume() {

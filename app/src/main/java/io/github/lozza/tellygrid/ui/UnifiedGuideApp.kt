@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -84,6 +85,7 @@ fun UnifiedGuideApp(
     onResetChannelOrder: () -> Unit,
     onGuideDensityChanged: (GuideDensity) -> Unit,
     onResetChannelManagement: () -> Unit,
+    homePresses: Int = 0,
 ) {
     var playerTarget by remember { mutableStateOf<PlaybackTarget.LicensedStream?>(null) }
     var nativeChannel by remember { mutableStateOf<NativeTvChannel?>(null) }
@@ -100,6 +102,21 @@ fun UnifiedGuideApp(
     val favouriteKeys = remember(guideSettings.favouriteShows) { guideSettings.favouriteShows.map { it.key }.toSet() }
     var details by remember { mutableStateOf<Pair<GuideChannel, io.github.lozza.tellygrid.data.Programme>?>(null) }
     val saveableStateHolder = rememberSaveableStateHolder()
+    // The remote's Home button while TellyGrid is already open returns to the Home tab,
+    // closing whatever screen is on top, like a normal TV launcher.
+    LaunchedEffect(homePresses) {
+        if (homePresses == 0) return@LaunchedEffect
+        playerTarget = null
+        nativeChannel = null
+        details = null
+        showingSetup = false
+        showingFilter = false
+        showingSearch = false
+        showingApps = false
+        showingFavourites = false
+        showingHome = true
+        status = null
+    }
     val featured = remember(channels) {
         val now = java.time.Instant.now()
         channels.asSequence()
