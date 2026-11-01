@@ -50,6 +50,7 @@ class MainActivity : ComponentActivity() {
     private val homePresses = mutableStateOf(0)
     private val remoteNavigation = mutableStateOf<RemoteNavigation?>(null)
     private val homeOverrideEnabled = mutableStateOf(true)
+    private val homeOverrideSkipped = mutableStateOf(false)
     private val installedAppsRefresh = mutableStateOf(0)
     private val packageChangeReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -65,6 +66,7 @@ class MainActivity : ComponentActivity() {
         val sampleChannels = SampleGuideRepository().channels()
 
         homeOverrideEnabled.value = HomeOverrideAccessibilityService.isEnabled(this)
+        homeOverrideSkipped.value = setupPrefs().getBoolean(KEY_SETUP_SKIPPED, false)
         handleRemoteButton(intent)
 
         ContextCompat.registerReceiver(
@@ -152,12 +154,15 @@ class MainActivity : ComponentActivity() {
                 guideViewModel.reconcileReminders(notificationsAllowed)
             }
 
-            if (!homeOverrideEnabled.value) {
-                // Required setup: without the Home override the remote's Home button opens the
-                // stock launcher. Shown on first install and whenever the TV turns it off again.
+            if (!homeOverrideEnabled.value && !homeOverrideSkipped.value) {
+                // Setup: without the Home override the remote's Home button opens the stock
+                // launcher. Shown on first install and whenever the TV turns it off again, unless
+                // the user chose "Skip for now" (Settings > Home override brings it back).
                 HomeOverrideSetupScreen(
                     onOpenAccessibilitySettings = ::openHomeOverrideSettings,
+                    onOpenAppInfo = ::openAppInfo,
                     onCheckAgain = ::refreshHomeOverrideEnabled,
+                    onSkip = { setHomeOverrideSkipped(true) },
                 )
             } else {
                 UnifiedGuideApp(
@@ -179,7 +184,9 @@ class MainActivity : ComponentActivity() {
                         openHomeRoleSettings()
                     },
                     onEnableHomeOverride = {
-                        openHomeOverrideSettings()
+                        // Show the setup steps again (they include the Android 13+ restricted
+                        // settings instructions) rather than dropping straight into Settings.
+                        if (refreshHomeOverrideEnabled()) openHomeOverrideSettings() else setHomeOverrideSkipped(false)
                         Unit
                     },
                     onOpenAndroidSettings = ::openAndroidSettings,
@@ -262,6 +269,26 @@ class MainActivity : ComponentActivity() {
     private fun refreshHomeOverrideEnabled(): Boolean =
         HomeOverrideAccessibilityService.isEnabled(this).also { homeOverrideEnabled.value = it }
 
+    private fun setupPrefs() = getSharedPreferences(SETUP_PREFS, Context.MODE_PRIVATE)
+
+    private fun setHomeOverrideSkipped(skipped: Boolean) {
+        setupPrefs().edit().putBoolean(KEY_SETUP_SKIPPED, skipped).apply()
+        homeOverrideSkipped.value = skipped
+    }
+
+    /**
+     * Opens TellyGrid's own App info page. On Android 13+ a sideloaded app's accessibility
+     * service is blocked ("restricted setting") until the user picks Allow restricted settings
+     * from the ⋮ menu on this page.
+     */
+    private fun openAppInfo(): Boolean =
+        runCatching {
+            startActivity(
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }.isSuccess
+
     private fun openHomeRoleSettings() {
         if (android.os.Build.VERSION.SDK_INT >= 29) {
             val roleManager = getSystemService(RoleManager::class.java)
@@ -310,6 +337,9 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Name of the [ButtonDestination] a mapped remote button should open. */
         const val EXTRA_DESTINATION = "io.github.lozza.tellygrid.extra.DESTINATION"
+
+        private const val SETUP_PREFS = "home_override_setup"
+        private const val KEY_SETUP_SKIPPED = "skipped"
 
         /** Placeholder activities some TV builds register for Settings actions they don't support. */
         private val SETTINGS_STUB_PACKAGES = setOf("com.google.android.tv.frameworkpackagestubs")
