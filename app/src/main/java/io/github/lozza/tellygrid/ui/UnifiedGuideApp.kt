@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,9 +31,13 @@ import io.github.lozza.tellygrid.data.Programme
 import io.github.lozza.tellygrid.data.forGuideSettings
 import io.github.lozza.tellygrid.data.sameProgramme
 import io.github.lozza.tellygrid.data.searchResultTimelineStart
+import io.github.lozza.tellygrid.playback.ButtonDestination
 import io.github.lozza.tellygrid.playback.InstalledTvApp
 import io.github.lozza.tellygrid.playback.LaunchResult
 import io.github.lozza.tellygrid.playback.NativeTvChannel
+
+/** One press of a mapped remote button; [sequence] makes repeat presses of the same button count. */
+data class RemoteNavigation(val sequence: Int, val destination: ButtonDestination)
 
 private fun InstalledTvApp.isFreeviewWrapper(): Boolean {
     val searchable = "$label $packageName".lowercase()
@@ -84,6 +89,7 @@ fun UnifiedGuideApp(
     onGuideDensityChanged: (GuideDensity) -> Unit,
     onResetChannelManagement: () -> Unit,
     homePresses: Int = 0,
+    remoteNavigation: RemoteNavigation? = null,
 ) {
     var playerTarget by remember { mutableStateOf<PlaybackTarget.LicensedStream?>(null) }
     var nativeChannel by remember { mutableStateOf<NativeTvChannel?>(null) }
@@ -102,18 +108,42 @@ fun UnifiedGuideApp(
     val saveableStateHolder = rememberSaveableStateHolder()
     // The remote's Home button while TellyGrid is already open returns to the Home tab,
     // closing whatever screen is on top, like a normal TV launcher.
-    LaunchedEffect(homePresses) {
-        if (homePresses == 0) return@LaunchedEffect
+    // Bumped to start Settings afresh (its own sub-pages closed) when a remote button opens it.
+    var settingsSession by remember { mutableStateOf(0) }
+    fun closeEverything() {
         playerTarget = null
         nativeChannel = null
         details = null
+        detailsFromFavourites = false
         showingSetup = false
+        setupOpenedFromHome = false
         showingFilter = false
         showingSearch = false
         showingApps = false
         showingFavourites = false
         showingHome = true
         status = null
+    }
+    LaunchedEffect(homePresses) {
+        if (homePresses == 0) return@LaunchedEffect
+        closeEverything()
+    }
+    // A remote button mapped in Settings > Remote buttons jumps straight to its page.
+    LaunchedEffect(remoteNavigation) {
+        val destination = remoteNavigation?.destination ?: return@LaunchedEffect
+        closeEverything()
+        when (destination) {
+            ButtonDestination.HOME -> Unit
+            ButtonDestination.APPS -> showingApps = true
+            ButtonDestination.FAVOURITES -> showingFavourites = true
+            ButtonDestination.GUIDE -> showingHome = false
+            ButtonDestination.SETTINGS -> {
+                settingsSession++
+                setupOpenedFromHome = true
+                showingHome = false
+                showingSetup = true
+            }
+        }
     }
     val featured = remember(channels) {
         val now = java.time.Instant.now()
@@ -427,7 +457,7 @@ fun UnifiedGuideApp(
                 onBack = { showingSearch = false },
             )
         } else if (showingSetup) {
-            ProviderSetupScreen(
+            key(settingsSession) { ProviderSetupScreen(
                 providers = providers,
                 installedApps = installedApps,
                 suggestedApps = suggestedApps,
@@ -447,7 +477,7 @@ fun UnifiedGuideApp(
                     if (setupOpenedFromHome) showingHome = true
                     setupOpenedFromHome = false
                 },
-            )
+            ) }
         } else if (nativeChannel != null) {
             val channel = nativeChannel!!
             BackHandler { nativeChannel = null }

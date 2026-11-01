@@ -34,6 +34,8 @@ import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
+import io.github.lozza.tellygrid.playback.ButtonDestination
+import io.github.lozza.tellygrid.ui.RemoteNavigation
 import io.github.lozza.tellygrid.playback.HomeOverrideAccessibilityService
 import io.github.lozza.tellygrid.playback.NativeTvChannelLauncher
 import io.github.lozza.tellygrid.playback.ReminderScheduler
@@ -46,6 +48,7 @@ private const val TV_LISTINGS_PERMISSION = "android.permission.READ_TV_LISTINGS"
 class MainActivity : ComponentActivity() {
     private val recommendationsRefresh = mutableStateOf(0)
     private val homePresses = mutableStateOf(0)
+    private val remoteNavigation = mutableStateOf<RemoteNavigation?>(null)
     private val homeOverrideEnabled = mutableStateOf(true)
     private val installedAppsRefresh = mutableStateOf(0)
     private val packageChangeReceiver = object : BroadcastReceiver() {
@@ -62,6 +65,7 @@ class MainActivity : ComponentActivity() {
         val sampleChannels = SampleGuideRepository().channels()
 
         homeOverrideEnabled.value = HomeOverrideAccessibilityService.isEnabled(this)
+        handleRemoteButton(intent)
 
         ContextCompat.registerReceiver(
             this,
@@ -222,6 +226,7 @@ class MainActivity : ComponentActivity() {
                     onGuideDensityChanged = guideViewModel::setDensity,
                     onResetChannelManagement = guideViewModel::resetChannelManagement,
                     homePresses = homePresses.value,
+                    remoteNavigation = remoteNavigation.value,
                 )
             }
         }
@@ -231,6 +236,15 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         if (intent.hasCategory(Intent.CATEGORY_HOME)) homePresses.value++
+        handleRemoteButton(intent)
+    }
+
+    /** A remote button mapped in Settings sends TellyGrid straight to a page. */
+    private fun handleRemoteButton(intent: Intent?) {
+        val name = intent?.getStringExtra(EXTRA_DESTINATION) ?: return
+        val destination = ButtonDestination.entries.firstOrNull { it.name == name } ?: return
+        intent.removeExtra(EXTRA_DESTINATION)
+        remoteNavigation.value = RemoteNavigation((remoteNavigation.value?.sequence ?: 0) + 1, destination)
     }
 
     override fun onResume() {
@@ -293,9 +307,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private companion object {
+    companion object {
+        /** Name of the [ButtonDestination] a mapped remote button should open. */
+        const val EXTRA_DESTINATION = "io.github.lozza.tellygrid.extra.DESTINATION"
+
         /** Placeholder activities some TV builds register for Settings actions they don't support. */
-        val SETTINGS_STUB_PACKAGES = setOf("com.google.android.tv.frameworkpackagestubs")
+        private val SETTINGS_STUB_PACKAGES = setOf("com.google.android.tv.frameworkpackagestubs")
     }
 
 }

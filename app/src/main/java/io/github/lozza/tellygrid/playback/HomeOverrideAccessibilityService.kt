@@ -24,6 +24,8 @@ import io.github.lozza.tellygrid.MainActivity
  */
 class HomeOverrideAccessibilityService : AccessibilityService() {
     private var lastLaunchAt = 0L
+    /** A remapped button that is still held down; its repeats and release are swallowed. */
+    private var heldKey: Int? = null
     private var stockLaunchers: Set<String> = KNOWN_STOCK_LAUNCHERS
 
     override fun onServiceConnected() {
@@ -32,10 +34,55 @@ class HomeOverrideAccessibilityService : AccessibilityService() {
     }
 
     override fun onKeyEvent(event: KeyEvent): Boolean {
-        if (event.keyCode != KeyEvent.KEYCODE_HOME) return false
-        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) launchTellyGrid()
-        // Consume down, repeats (long press) and up so the system never starts its own Home.
+        val keyCode = event.keyCode
+        if (keyCode == KeyEvent.KEYCODE_HOME) {
+            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) launchTellyGrid()
+            // Consume down, repeats (long press) and up so the system never starts its own Home.
+            return true
+        }
+        return handleRemoteButton(event)
+    }
+
+    /**
+     * Buttons the user has mapped in Settings > Remote buttons (e.g. Settings opens the Guide).
+     * Like Home, a handled button's repeats and release are swallowed too, so the TV or the
+     * app on screen never sees half a press.
+     */
+    private fun handleRemoteButton(event: KeyEvent): Boolean {
+        val keyCode = event.keyCode
+        if (keyCode == heldKey) {
+            if (event.action == KeyEvent.ACTION_UP) heldKey = null
+            if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount > 0) return true
+        }
+        if (event.action != KeyEvent.ACTION_DOWN || event.repeatCount > 0) return false
+        if (!RemoteButtons.canRemap(keyCode)) return false
+
+        RemoteButtonCapture.listener?.let { listener ->
+            RemoteButtonCapture.listener = null
+            heldKey = keyCode
+            listener(keyCode)
+            return true
+        }
+        val destination = RemoteButtonStore.destination(this, keyCode) ?: return false
+        heldKey = keyCode
+        openDestination(destination)
         return true
+    }
+
+    private fun openDestination(destination: ButtonDestination) {
+        startActivity(
+            Intent(this, MainActivity::class.java).apply {
+                action = Intent.ACTION_MAIN
+                putExtra(MainActivity.EXTRA_DESTINATION, destination.name)
+                addFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                        Intent.FLAG_ACTIVITY_NO_ANIMATION or
+                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED,
+                )
+            },
+        )
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
