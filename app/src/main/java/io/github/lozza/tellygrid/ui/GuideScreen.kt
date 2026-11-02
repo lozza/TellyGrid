@@ -935,6 +935,7 @@ private fun actionLabel(channel: GuideChannel?, programme: Programme?): String =
         else -> "OPEN ${target.provider.displayName.uppercase()}  ›"
     }
     is PlaybackTarget.LicensedStream -> "WATCH  ›"
+    is PlaybackTarget.PublishedChannel -> "WATCH IN ${target.appLabel.uppercase()}  ›"
     is PlaybackTarget.Unavailable -> "UNAVAILABLE"
     null -> "SELECT A PROGRAMME"
 }
@@ -952,6 +953,7 @@ private val GuideFilter.compactLabel: String
         GuideFilter.FAVOURITES -> "FAV"
         GuideFilter.FREEVIEW -> "TV"
         GuideFilter.FAST -> "PLUTO TV"
+        GuideFilter.TIVIMATE -> "TIVI"
         GuideFilter.ENTERTAINMENT -> "ENT"
         GuideFilter.MOVIES -> "FILMS"
         GuideFilter.SPORT -> "SPORT"

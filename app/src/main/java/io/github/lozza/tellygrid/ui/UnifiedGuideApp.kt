@@ -145,6 +145,11 @@ fun UnifiedGuideApp(
             }
         }
     }
+    // TiviMate's published channels join the Guide (not Home's live shelves).
+    val guideChannels = remember(channels, publishedRecommendations, installedApps) {
+        val tiviMateInstalled = installedApps.any { it.packageName in io.github.lozza.tellygrid.data.TiviMate.packageNames }
+        channels + io.github.lozza.tellygrid.data.TiviMate.guideChannels(publishedRecommendations, tiviMateInstalled)
+    }
     val featured = remember(channels) {
         val now = java.time.Instant.now()
         channels.asSequence()
@@ -230,6 +235,10 @@ fun UnifiedGuideApp(
                     is LaunchResult.Opened -> "Opening ${result.destination}"
                     is LaunchResult.Failed -> result.message
                 }
+            }
+            is PlaybackTarget.PublishedChannel -> status = when (val result = onLaunchPublishedProgramme(target.programme)) {
+                is LaunchResult.Opened -> "Opening ${result.destination}"
+                is LaunchResult.Failed -> result.message
             }
             is PlaybackTarget.Unavailable -> status = target.reason
         }
@@ -449,7 +458,7 @@ fun UnifiedGuideApp(
             )
         } else if (showingSearch) {
             GuideSearchScreen(
-                channels = channels.forGuideSettings(guideSettings.copy(filter = GuideFilter.ALL, providerFilter = null)),
+                channels = guideChannels.forGuideSettings(guideSettings.copy(filter = GuideFilter.ALL, providerFilter = null)),
                 onResultSelected = { channel, programme ->
                     onGuideSearchResult(channel.id, programme.id, searchResultTimelineStart(programme))
                     showingSearch = false
@@ -462,7 +471,7 @@ fun UnifiedGuideApp(
                 installedApps = installedApps,
                 suggestedApps = suggestedApps,
                 selections = selections,
-                channels = channels,
+                channels = guideChannels,
                 guideSettings = guideSettings,
                 onSelect = onProviderSelected,
                 onProviderEnabledChanged = onProviderEnabledChanged,
@@ -496,7 +505,7 @@ fun UnifiedGuideApp(
             BackHandler { playerTarget = null }
             PlayerScreen(target = playing, onBack = { playerTarget = null })
         } else {
-            val visibleChannels = remember(channels, guideSettings) { channels.forGuideSettings(guideSettings) }
+            val visibleChannels = remember(guideChannels, guideSettings) { guideChannels.forGuideSettings(guideSettings) }
             saveableStateHolder.SaveableStateProvider("guide") {
                 GuideScreen(
                     channels = visibleChannels,
