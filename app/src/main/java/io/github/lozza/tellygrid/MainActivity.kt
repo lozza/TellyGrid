@@ -33,6 +33,7 @@ import io.github.lozza.tellygrid.data.BbcIplayerCatalogueRepository
 import io.github.lozza.tellygrid.data.BbcIplayerEpisode
 import io.github.lozza.tellygrid.data.ProviderId
 import io.github.lozza.tellygrid.data.TvPublishedRecommendationsRepository
+import io.github.lozza.tellygrid.data.withLocalWatchNext
 import io.github.lozza.tellygrid.playback.AppHandoffLauncher
 import io.github.lozza.tellygrid.playback.ButtonDestination
 import io.github.lozza.tellygrid.ui.RemoteNavigation
@@ -61,6 +62,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val launcher = AppHandoffLauncher(this)
+        val tiviMateRecents = io.github.lozza.tellygrid.data.TiviMateRecents(this)
         val nativeTv = NativeTvChannelLauncher(this)
         val discovery = TvAppDiscovery(this)
         val sampleChannels = SampleGuideRepository().channels()
@@ -134,6 +136,7 @@ class MainActivity : ComponentActivity() {
                 publishedRecommendations = if (tvListingsAllowed) {
                     withContext(Dispatchers.IO) {
                         TvPublishedRecommendationsRepository(this@MainActivity).load()
+                            .withLocalWatchNext(tiviMateRecents.load())
                     }
                 } else TvPublishedRecommendations(loaded = true)
             }
@@ -170,7 +173,17 @@ class MainActivity : ComponentActivity() {
                     guideStatus = guideStatus,
                     onHandoff = { target -> launcher.launch(target, selections[target.provider.id]) },
                     onLaunchInstalledApp = launcher::launch,
-                    onLaunchPublishedProgramme = launcher::launch,
+                    onLaunchPublishedProgramme = { programme ->
+                        launcher.launch(programme).also { result ->
+                            // TiviMate channels opened here go to the front of Watch Next.
+                            if (result is io.github.lozza.tellygrid.playback.LaunchResult.Opened &&
+                                io.github.lozza.tellygrid.data.TiviMate.owns(programme)
+                            ) {
+                                val watched = tiviMateRecents.record(programme)
+                                publishedRecommendations = publishedRecommendations.withLocalWatchNext(listOf(watched))
+                            }
+                        }
+                    },
                     publishedRecommendations = publishedRecommendations,
                     bbcIplayerEpisodes = bbcIplayerEpisodes,
                     onLaunchBbcIplayerEpisode = { episode ->

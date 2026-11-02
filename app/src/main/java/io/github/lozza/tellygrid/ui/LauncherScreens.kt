@@ -313,6 +313,20 @@ fun LauncherHomeScreen(
                 }
             }
         }
+        // TiviMate gets its own row from the channels it publishes, whether or not it is pinned to Home.
+        val tiviMateApp = io.github.lozza.tellygrid.data.TiviMate.packageNames.firstNotNullOfOrNull(installedByPackage::get)
+        val tiviMateRow = io.github.lozza.tellygrid.data.TiviMate.recommendations(publishedRecommendations).take(20)
+        if (tiviMateApp != null && tiviMateRow.isNotEmpty()) item {
+            HomeSection {
+                SectionHeading("TIVIMATE")
+                Spacer(Modifier.height(14.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
+                    items(tiviMateRow) { recommendation ->
+                        PublishedRecommendationCard(recommendation, tiviMateApp, onOpenPublishedProgramme, favouriteKeys, onToggleFavourite, openActions)
+                    }
+                }
+            }
+        }
         // BBC publishes no Android TV rows, so its shelf comes from BBC's own catalogue.
         val bbcApp = ProviderRegistry.bbc.packageCandidates.firstNotNullOfOrNull(installedByPackage::get)
         if (bbcApp != null && bbcIplayerEpisodes.isNotEmpty()) item {
@@ -336,7 +350,9 @@ fun LauncherHomeScreen(
                 }
             }
         }
-        streamingApps.sortedBy { if (streamingRecommendationKey(it) == "hbo") 0 else 1 }.forEach { app ->
+        streamingApps
+            .filterNot { it.packageName in io.github.lozza.tellygrid.data.TiviMate.packageNames }
+            .sortedBy { if (streamingRecommendationKey(it) == "hbo") 0 else 1 }.forEach { app ->
             val recommendations = publishedRecommendations.preview
                 .filter { it.packageName == app.packageName }
                 .take(12)
