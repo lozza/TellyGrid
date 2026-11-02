@@ -172,7 +172,17 @@ class MainActivity : ComponentActivity() {
                     channels = channels,
                     guideStatus = guideStatus,
                     onHandoff = { target -> launcher.launch(target, selections[target.provider.id]) },
-                    onLaunchInstalledApp = launcher::launch,
+                    onLaunchInstalledApp = { app ->
+                        launcher.launch(app).also { result ->
+                            // Opening TiviMate from Apps leaves a "Resume TiviMate" card in Watch Next.
+                            if (result is io.github.lozza.tellygrid.playback.LaunchResult.Opened &&
+                                app.packageName in io.github.lozza.tellygrid.data.TiviMate.packageNames
+                            ) {
+                                val watched = tiviMateRecents.record(io.github.lozza.tellygrid.data.TiviMate.resume)
+                                publishedRecommendations = publishedRecommendations.withLocalWatchNext(listOf(watched))
+                            }
+                        }
+                    },
                     onLaunchPublishedProgramme = { programme ->
                         launcher.launch(programme).also { result ->
                             // TiviMate channels opened here go to the front of Watch Next.

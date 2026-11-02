@@ -146,8 +146,9 @@ fun UnifiedGuideApp(
         }
     }
     // TiviMate's published channels join the Guide (not Home's live shelves).
-    val guideChannels = remember(channels, publishedRecommendations) {
-        channels + io.github.lozza.tellygrid.data.TiviMate.guideChannels(publishedRecommendations)
+    val guideChannels = remember(channels, publishedRecommendations, installedApps) {
+        val tiviMateInstalled = installedApps.any { it.packageName in io.github.lozza.tellygrid.data.TiviMate.packageNames }
+        channels + io.github.lozza.tellygrid.data.TiviMate.guideChannels(publishedRecommendations, tiviMateInstalled)
     }
     val featured = remember(channels) {
         val now = java.time.Instant.now()

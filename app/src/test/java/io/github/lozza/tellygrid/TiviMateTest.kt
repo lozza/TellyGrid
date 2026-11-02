@@ -38,7 +38,7 @@ class TiviMateTest {
             watchNext = listOf(item("sky news"), item("BBC One")),
             loaded = true,
         )
-        val channels = TiviMate.guideChannels(published, now)
+        val channels = TiviMate.guideChannels(published, installed = true, now = now)
         assertEquals(listOf("BBC One", "Sky News"), channels.map { it.name })
         assertTrue(channels.all { it.playback is PlaybackTarget.PublishedChannel })
         assertTrue(channels.all { ch -> ch.programmes.single().let { it.startsAt < now && it.endsAt > now } })
@@ -46,8 +46,16 @@ class TiviMateTest {
 
     @Test
     fun tiviMateFilterShowsOnlyTiviMateChannels() {
-        val channels = TiviMate.guideChannels(TvPublishedRecommendations(preview = listOf(item("Sky News"))), now)
+        val channels = TiviMate.guideChannels(TvPublishedRecommendations(preview = listOf(item("Sky News"))), installed = true, now = now)
         assertEquals(1, channels.forGuideSettings(GuideSettings(filter = GuideFilter.TIVIMATE)).size)
+    }
+
+    @Test
+    fun withNoPublishedChannelsGuideHasOneRowThatOpensTiviMate() {
+        val channels = TiviMate.guideChannels(TvPublishedRecommendations(loaded = true), installed = true, now = now)
+        assertEquals(listOf("TiviMate"), channels.map { it.name })
+        assertEquals(TiviMate.resume, (channels.single().playback as PlaybackTarget.PublishedChannel).programme)
+        assertTrue(TiviMate.guideChannels(TvPublishedRecommendations(loaded = true), installed = false, now = now).isEmpty())
     }
 
     @Test

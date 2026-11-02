@@ -18,6 +18,19 @@ object TiviMate {
 
     fun owns(programme: TvPublishedProgramme): Boolean = programme.packageName in packageNames
 
+    /**
+     * Opens TiviMate itself. TiviMate has no channel deep link, but its "play last channel
+     * on startup" setting resumes whatever was last watched.
+     */
+    val resume = TvPublishedProgramme(
+        title = "Resume $LABEL",
+        packageName = "ar.tvplayer.tv",
+        intentUri = "intent:#Intent;action=android.intent.action.MAIN;" +
+            "category=android.intent.category.LEANBACK_LAUNCHER;package=ar.tvplayer.tv;end",
+        artworkUri = null,
+        description = "Carry on with your last channel",
+    )
+
     /** TiviMate's published rows, for its own Home recommendation row. */
     fun recommendations(published: TvPublishedRecommendations): List<TvPublishedProgramme> =
         published.preview.filter(::owns)
@@ -26,9 +39,14 @@ object TiviMate {
      * Guide channels built from the channels TiviMate publishes. On-demand items
      * (films, episodes) stay on Home; only live channels go in the Guide.
      */
-    fun guideChannels(published: TvPublishedRecommendations, now: Instant = Instant.now()): List<GuideChannel> =
-        (published.preview + published.watchNext)
-            .filter { owns(it) && it.isChannel() }
+    fun guideChannels(
+        published: TvPublishedRecommendations,
+        installed: Boolean,
+        now: Instant = Instant.now(),
+    ): List<GuideChannel> {
+        if (!installed) return emptyList()
+        val channels = (published.preview + published.watchNext)
+            .filter { owns(it) && it.isChannel() && it.intentUri != resume.intentUri }
             .distinctBy { it.title.lowercase() }
             .sortedBy { it.title.lowercase() }
             .mapIndexed { index, item ->
@@ -58,6 +76,27 @@ object TiviMate {
                     ),
                 )
             }
+        // TiviMate shares no channel list, so fall back to one row that opens TiviMate.
+        return channels.ifEmpty { listOf(resumeChannel(now)) }
+    }
+
+    private fun resumeChannel(now: Instant) = GuideChannel(
+        id = "tivimate:app",
+        number = CHANNEL_NUMBER_START,
+        name = LABEL,
+        providerLabel = LABEL,
+        accentArgb = 0xFF7C4DFF,
+        playback = PlaybackTarget.PublishedChannel(resume, LABEL),
+        programmes = listOf(
+            Programme(
+                id = "tivimate:app:live",
+                title = "Your $LABEL channels",
+                synopsis = "Opens $LABEL. Turn on \"play last channel on startup\" in $LABEL to go straight back to your channel.",
+                startsAt = now.minus(Duration.ofDays(1)),
+                endsAt = now.plus(Duration.ofDays(8)),
+            ),
+        ),
+    )
 
     private fun TvPublishedProgramme.isChannel(): Boolean =
         live || type == null || type == TvContract.PreviewPrograms.TYPE_CHANNEL
