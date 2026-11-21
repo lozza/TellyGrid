@@ -94,6 +94,12 @@ sealed interface PlaybackTarget {
         val terrestrialLcn: Int? = null,
     ) : PlaybackTarget
 
+    /** A channel row published by an installed app (e.g. TiviMate); opens via the app's own intent. */
+    data class PublishedChannel(
+        val programme: TvPublishedProgramme,
+        val appLabel: String,
+    ) : PlaybackTarget
+
     data class Unavailable(val reason: String) : PlaybackTarget
 }
 

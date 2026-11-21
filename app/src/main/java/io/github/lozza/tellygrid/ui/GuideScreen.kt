@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableIntStateOf
@@ -202,6 +203,13 @@ fun GuideScreen(
         if (channels.isNotEmpty()) {
             // Some TV launchers grant window focus noticeably later than phones.
             delay(if (initialFocusRequested) 16 else 450)
+            // The guide list is lazy: the selected tile (which owns gridFocus) only exists
+            // while its row is composed, so bring the selected channel's row on screen first.
+            val selectedIndex = channels.indexOfFirst { it.id == selectedChannel?.id }
+            if (selectedIndex >= 0 && gridListState.layoutInfo.visibleItemsInfo.none { it.index == selectedIndex }) {
+                runCatching { gridListState.scrollToItem(selectedIndex) }
+                delay(16)
+            }
             runCatching { gridFocus.requestFocus() }
             initialFocusRequested = true
         }
@@ -257,7 +265,12 @@ fun GuideScreen(
             dates = availableDates,
             selectedDate = windowStart.atZone(zone).toLocalDate(),
             today = now.atZone(zone).toLocalDate(),
-            gridFocus = gridFocus,
+            onMoveDown = {
+                // If the selected tile is on screen, focus it straight away. If it has
+                // scrolled out of the lazy list, scroll back to it and focus it next frame.
+                if (runCatching { gridFocus.requestFocus() }.isFailure) focusGeneration++
+                true
+            },
             onDateSelected = { date ->
                 if (date == now.atZone(zone).toLocalDate()) jumpToNow() else jumpToDate(date)
             },
@@ -316,18 +329,23 @@ private fun GuideDateStrip(
     dates: List<LocalDate>,
     selectedDate: LocalDate,
     today: LocalDate,
-    gridFocus: FocusRequester,
+    onMoveDown: () -> Boolean,
     onDateSelected: (LocalDate) -> Unit,
 ) {
     if (dates.size <= 1) return
     val selectedFocus = remember { FocusRequester() }
-    LazyRow(
-        // Entering the strip from above or below always lands on the selected day,
-        // and leaving downwards always returns to the selected programme.
-        modifier = Modifier.focusProperties { enter = { selectedFocus } },
+    val hasSelectedChip = selectedDate in dates
+    // A plain Row (not LazyRow) so every day chip is always composed and the
+    // selected chip's FocusRequester is always attached when we point focus at it.
+    Row(
+        // Entering the strip from above or below lands on the selected day when it
+        // is shown; otherwise Compose picks the nearest chip.
+        modifier = Modifier.focusProperties {
+            enter = { if (hasSelectedChip) selectedFocus else FocusRequester.Default }
+        },
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        items(dates, key = { it.toEpochDay() }) { date ->
+        dates.forEach { date -> key(date.toEpochDay()) {
             var focused by remember(date) { mutableStateOf(false) }
             val selected = date == selectedDate
             val label = when (date) {
@@ -356,13 +374,20 @@ private fun GuideDateStrip(
                         RoundedCornerShape(4.dp),
                     )
                     .then(if (selected) Modifier.focusRequester(selectedFocus) else Modifier)
-                    .focusProperties { down = gridFocus }
+                    // Down returns to the selected programme. Pointing focusProperties.down
+                    // at the grid's FocusRequester crashed whenever the selected tile had
+                    // scrolled out of the lazy guide list, so handle the key ourselves.
+                    .onPreviewKeyEvent { event ->
+                        event.type == KeyEventType.KeyDown &&
+                            event.key == androidx.compose.ui.input.key.Key.DirectionDown &&
+                            onMoveDown()
+                    }
                     .onFocusChanged { focused = it.isFocused }
                     .clickable { onDateSelected(date) }
                     .focusable()
                     .padding(horizontal = 12.dp, vertical = 7.dp),
             )
-        }
+        } }
     }
 }
 
@@ -935,6 +960,7 @@ private fun actionLabel(channel: GuideChannel?, programme: Programme?): String =
         else -> "OPEN ${target.provider.displayName.uppercase()}  ›"
     }
     is PlaybackTarget.LicensedStream -> "WATCH  ›"
+    is PlaybackTarget.PublishedChannel -> "WATCH IN ${target.appLabel.uppercase()}  ›"
     is PlaybackTarget.Unavailable -> "UNAVAILABLE"
     null -> "SELECT A PROGRAMME"
 }
@@ -952,6 +978,7 @@ private val GuideFilter.compactLabel: String
         GuideFilter.FAVOURITES -> "FAV"
         GuideFilter.FREEVIEW -> "TV"
         GuideFilter.FAST -> "PLUTO TV"
+        GuideFilter.TIVIMATE -> "TIVI"
         GuideFilter.ENTERTAINMENT -> "ENT"
         GuideFilter.MOVIES -> "FILMS"
         GuideFilter.SPORT -> "SPORT"

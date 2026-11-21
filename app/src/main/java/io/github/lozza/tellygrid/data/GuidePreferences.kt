@@ -30,6 +30,7 @@ enum class GuideFilter(val label: String) {
     // Persist the stable FAST enum name, but describe the currently curated
     // provider instead of exposing opaque implementation jargon.
     FAST("PLUTO TV"),
+    TIVIMATE("TIVIMATE"),
     ENTERTAINMENT("ENTERTAINMENT"),
     MOVIES("MOVIES"),
     SPORT("SPORT"),
@@ -386,6 +387,7 @@ fun List<GuideChannel>.forGuideSettings(settings: GuideSettings): List<GuideChan
             // and kids rows must still participate in the matching genre view.
             GuideFilter.FAST ->
                 (channel.playback as? PlaybackTarget.ProviderHandoff)?.provider?.id == ProviderId.PLUTO_TV
+            GuideFilter.TIVIMATE -> channel.playback is PlaybackTarget.PublishedChannel
             GuideFilter.ENTERTAINMENT -> channel.category == GuideCategory.ENTERTAINMENT
             GuideFilter.MOVIES -> channel.category == GuideCategory.MOVIES
             GuideFilter.SPORT -> channel.category == GuideCategory.SPORT

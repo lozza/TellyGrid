@@ -13,6 +13,11 @@ data class TvPublishedProgramme(
     /** When the viewer last engaged with this title, as reported by the app; null if unknown. */
     val lastEngagedAtMillis: Long? = null,
     val description: String? = null,
+    /** TvContract programme type (e.g. TYPE_CHANNEL); null if the app didn't say. */
+    val type: Int? = null,
+    val live: Boolean = false,
+    val startsAtMillis: Long? = null,
+    val endsAtMillis: Long? = null,
 )
 
 data class TvPublishedRecommendations(
@@ -51,6 +56,10 @@ class TvPublishedRecommendationsRepository(private val context: Context) {
                             description = cursor.value("short_description")?.trim()?.takeIf(String::isNotBlank),
                             lastEngagedAtMillis = cursor.value("last_engagement_time_utc_millis")
                                 ?.toLongOrNull()?.takeIf { it > 0 },
+                            type = cursor.value("type")?.toIntOrNull(),
+                            live = cursor.value("live") == "1",
+                            startsAtMillis = cursor.value("start_time_utc_millis")?.toLongOrNull()?.takeIf { it > 0 },
+                            endsAtMillis = cursor.value("end_time_utc_millis")?.toLongOrNull()?.takeIf { it > 0 },
                         ),
                     )
                 }

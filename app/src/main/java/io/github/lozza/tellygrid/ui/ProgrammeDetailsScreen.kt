@@ -139,6 +139,7 @@ private fun detailWatchLabel(channel: GuideChannel, programme: Programme): Strin
         else -> "OPEN ${target.provider.displayName.uppercase()}"
     }
     is PlaybackTarget.LicensedStream -> "WATCH"
+    is PlaybackTarget.PublishedChannel -> "WATCH IN ${target.appLabel.uppercase()}"
     is PlaybackTarget.Unavailable -> "UNAVAILABLE"
 }
 
@@ -149,5 +150,6 @@ private fun detailAvailability(channel: GuideChannel, programme: Programme): Str
         else -> "TellyGrid opens the installed ${target.provider.displayName} app. A channel-specific route has not yet been verified on this TV."
     }
     is PlaybackTarget.LicensedStream -> "Licensed in-app playback."
+    is PlaybackTarget.PublishedChannel -> "Opens this channel in ${target.appLabel}, using the link ${target.appLabel} published to your TV."
     is PlaybackTarget.Unavailable -> target.reason
 }
